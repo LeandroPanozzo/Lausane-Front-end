@@ -8,6 +8,8 @@ import Layout from "./components/Layout";
 import PublicLayout from "./components/PublicLayout";
 
 import Login from "./pages/Login";
+import RecuperarPassword from "./pages/RecuperarPassword";
+import ResetearPassword from "./pages/ResetearPassword";
 
 // Cada página pesada se separa en su propio chunk: el usuario descarga el
 // bundle principal (sitio público + login) y recién trae Presupuestos/
@@ -55,6 +57,8 @@ export default function App() {
                 </Route>
 
                 <Route path="/login" element={<Login />} />
+                <Route path="/recuperar-contrasena" element={<RecuperarPassword />} />
+                <Route path="/reset-password/:uid/:token" element={<ResetearPassword />} />
 
                 {/* Sistema interno de precios/presupuestos, atrás de login. */}
                 <Route

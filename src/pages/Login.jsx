@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { extraerMensajeError } from "../api/client";
 
@@ -13,6 +13,7 @@ export default function Login() {
   const [cargando, setCargando] = useState(false);
 
   const from = location.state?.from?.pathname || "/app";
+  const passwordActualizada = location.state?.passwordActualizada;
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -39,6 +40,9 @@ export default function Login() {
           <img src="/logo-lausane.png" alt="Lausane S.A.C." className="logo-img" />
         </div>
 
+        {passwordActualizada && !error && (
+          <div className="alert alert-ok">Contraseña actualizada. Ya podés iniciar sesión.</div>
+        )}
         {error && <div className="alert alert-danger">{error}</div>}
 
         <form onSubmit={onSubmit}>
@@ -70,6 +74,12 @@ export default function Login() {
             {cargando ? "Ingresando…" : "Ingresar"}
           </button>
         </form>
+
+        <div style={{ textAlign: "center", marginTop: 14 }}>
+          <Link to="/recuperar-contrasena" style={{ fontSize: 13 }}>
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
       </div>
     </div>
   );
