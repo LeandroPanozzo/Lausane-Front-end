@@ -518,6 +518,16 @@ table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .topbar { padding: 0 16px; }
   .page { padding: 20px; }
   .page-header { align-items: flex-start; }
+  .tabs { flex-wrap: wrap; gap: 2px; }
+  .tab { padding: 8px 12px; font-size: 12px; }
+  .data-table th, .data-table td { padding: 8px 10px; }
+}
+
+@media (max-width: 480px) {
+  .data-table { font-size: 12px; }
+  .data-table th, .data-table td { padding: 7px 8px; }
+  .tab { padding: 7px 9px; font-size: 11.5px; }
+  .modal { max-width: 100%; }
 }
 
 /* =========================================================================
