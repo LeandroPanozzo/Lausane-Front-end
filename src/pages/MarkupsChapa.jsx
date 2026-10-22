@@ -3,18 +3,46 @@ import { listarMarkups, eliminarMarkup, actualizarConfiguracion } from "../api/c
 import {
   listarGalvanizada, actualizarGalvanizada, eliminarGalvanizada, listaPreciosGalvanizada,
 } from "../api/galvanizada";
+import {
+  listarGruesas, actualizarGruesa, eliminarGruesa, listaPreciosGruesas,
+} from "../api/gruesas";
 import { Loading, EmptyState } from "../components/Ui";
 import MarkupFormModal from "../components/MarkupFormModal";
-import GalvanizadaFormModal from "../components/GalvanizadaFormModal";
+import CatalogoCostoFormModal from "../components/CatalogoCostoFormModal";
 
-function IncrementoCell({ chapa, onGuardado }) {
+// Galvanizada y Gruesas comparten exactamente la misma lógica (costo propio
+// en U$S/kg por espesor/ancho + un % de incremento general editable, con
+// opción de sacarle el incremento a una chapa puntual) — solo cambia a qué
+// endpoint y campo de Configuración apunta cada una.
+const CATALOGOS_COSTO = {
+  GALVANIZADA: {
+    tipo: "galvanizada",
+    label: "Galvanizada",
+    incrementoCampo: "incremento_galvanizada",
+    listar: listarGalvanizada,
+    listaPrecios: listaPreciosGalvanizada,
+    actualizar: actualizarGalvanizada,
+    eliminar: eliminarGalvanizada,
+  },
+  GRUESA: {
+    tipo: "gruesa",
+    label: "Gruesas",
+    incrementoCampo: "incremento_gruesas",
+    listar: listarGruesas,
+    listaPrecios: listaPreciosGruesas,
+    actualizar: actualizarGruesa,
+    eliminar: eliminarGruesa,
+  },
+};
+
+function IncrementoCell({ chapa, actualizar, onGuardado }) {
   const [guardando, setGuardando] = useState(false);
 
   async function onChange(e) {
     const valor = e.target.checked;
     setGuardando(true);
     try {
-      onGuardado(await actualizarGalvanizada(chapa.id, { usar_incremento_general: valor }));
+      onGuardado(await actualizar(chapa.id, { usar_incremento_general: valor }));
     } catch {
       alert("No se pudo guardar el cambio.");
     } finally {
@@ -38,8 +66,8 @@ function IncrementoCell({ chapa, onGuardado }) {
 
 export default function MarkupsChapa() {
   const [items, setItems] = useState(null);
-  const [preciosGalvPorClave, setPreciosGalvPorClave] = useState({});
-  const [incrementoGalvanizada, setIncrementoGalvanizada] = useState(null);
+  const [preciosPorClave, setPreciosPorClave] = useState({});
+  const [incrementoActual, setIncrementoActual] = useState(null);
   const [incrementoInput, setIncrementoInput] = useState("");
   const [guardandoIncremento, setGuardandoIncremento] = useState(false);
   const [incrementoOk, setIncrementoOk] = useState(false);
@@ -48,22 +76,23 @@ export default function MarkupsChapa() {
   const [modal, setModal] = useState(null);
   const [borrando, setBorrando] = useState(null);
 
-  const esGalvanizada = tab === "GALVANIZADA";
+  const catalogo = CATALOGOS_COSTO[tab];
+  const esCatalogoCosto = Boolean(catalogo);
 
   const cargar = useCallback(async () => {
     setError(null);
     setItems(null);
     try {
-      if (esGalvanizada) {
-        const [listado, precios] = await Promise.all([listarGalvanizada(), listaPreciosGalvanizada()]);
+      if (catalogo) {
+        const [listado, precios] = await Promise.all([catalogo.listar(), catalogo.listaPrecios()]);
         setItems(listado.results ?? listado);
-        setIncrementoGalvanizada(precios.incremento_galvanizada);
-        setIncrementoInput((Number(precios.incremento_galvanizada) * 100).toString());
+        setIncrementoActual(precios[catalogo.incrementoCampo]);
+        setIncrementoInput((Number(precios[catalogo.incrementoCampo]) * 100).toString());
         const mapa = {};
         precios.chapas.forEach((c) => {
           mapa[`${c.espesor}·${c.ancho_mm}`] = c;
         });
-        setPreciosGalvPorClave(mapa);
+        setPreciosPorClave(mapa);
       } else {
         const data = await listarMarkups({ tipo: tab });
         setItems(data.results ?? data);
@@ -71,7 +100,7 @@ export default function MarkupsChapa() {
     } catch {
       setError("No se pudo cargar la tabla de recargos.");
     }
-  }, [tab, esGalvanizada]);
+  }, [tab, catalogo]);
 
   useEffect(() => {
     cargar();
@@ -89,7 +118,7 @@ export default function MarkupsChapa() {
     if (Number.isNaN(valor) || valor < 0) return;
     setGuardandoIncremento(true);
     try {
-      await actualizarConfiguracion({ incremento_galvanizada: valor / 100 });
+      await actualizarConfiguracion({ [catalogo.incrementoCampo]: valor / 100 });
       setIncrementoOk(true);
       await cargar();
     } catch {
@@ -104,7 +133,7 @@ export default function MarkupsChapa() {
     if (!window.confirm(`¿Eliminar "${etiqueta}"?`)) return;
     setBorrando(m.id);
     try {
-      await (esGalvanizada ? eliminarGalvanizada(m.id) : eliminarMarkup(m.id));
+      await (catalogo ? catalogo.eliminar(m.id) : eliminarMarkup(m.id));
       cargar();
     } catch {
       alert("No se pudo eliminar.");
@@ -121,24 +150,24 @@ export default function MarkupsChapa() {
           <h1>Chapas</h1>
         </div>
         <button className="btn btn-primary" onClick={() => setModal("nuevo")}>
-          {esGalvanizada ? "+ Nueva chapa" : "+ Nuevo recargo"}
+          {esCatalogoCosto ? "+ Nueva chapa" : "+ Nuevo recargo"}
         </button>
       </div>
 
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18, maxWidth: 640 }}>
-        {esGalvanizada
-          ? "A diferencia de Laminado en Frío y Negra, cada espesor/ancho de galvanizada tiene su propio costo en U$S/kg (no un % sobre un precio base compartido)."
+        {esCatalogoCosto
+          ? `A diferencia de Laminado en Frío y Negra, cada espesor/ancho de ${catalogo.label.toLowerCase()} tiene su propio costo en U$S/kg (no un % sobre un precio base compartido).`
           : "Esta tabla es la misma para todos los clientes — replica los porcentajes que en el Excel " +
             "original se repetían en la hoja de cada cliente (ej. \"base + 7%\" para espesor 16)."}
       </p>
 
-      {esGalvanizada && incrementoGalvanizada !== null && (
+      {esCatalogoCosto && incrementoActual !== null && (
         <form
           onSubmit={onGuardarIncremento}
           className="alert alert-warn"
           style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}
         >
-          <span>Incremento general aplicado a toda la chapa galvanizada:</span>
+          <span>Incremento general aplicado a toda la chapa {catalogo.label.toLowerCase()}:</span>
           <input
             className="input num"
             type="number"
@@ -150,7 +179,7 @@ export default function MarkupsChapa() {
               setIncrementoInput(e.target.value);
               setIncrementoOk(false);
             }}
-            aria-label="Incremento general de galvanizada, en porcentaje"
+            aria-label={`Incremento general de ${catalogo.label.toLowerCase()}, en porcentaje`}
           />
           <span>%</span>
           <button className="btn btn-sm btn-primary" type="submit" disabled={guardandoIncremento}>
@@ -171,6 +200,9 @@ export default function MarkupsChapa() {
             </div>
             <div className={`tab ${tab === "GALVANIZADA" ? "active" : ""}`} onClick={() => setTab("GALVANIZADA")}>
               Galvanizada
+            </div>
+            <div className={`tab ${tab === "GRUESA" ? "active" : ""}`} onClick={() => setTab("GRUESA")}>
+              Gruesas
             </div>
           </div>
         </div>
@@ -193,13 +225,13 @@ export default function MarkupsChapa() {
             title="No hay recargos cargados para este tipo"
             action={
               <button className="btn btn-primary" onClick={() => setModal("nuevo")}>
-                {esGalvanizada ? "+ Nueva chapa" : "+ Nuevo recargo"}
+                {esCatalogoCosto ? "+ Nueva chapa" : "+ Nuevo recargo"}
               </button>
             }
           />
         )}
 
-        {items && items.length > 0 && !esGalvanizada && (
+        {items && items.length > 0 && !esCatalogoCosto && (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -248,7 +280,7 @@ export default function MarkupsChapa() {
           </div>
         )}
 
-        {items && items.length > 0 && esGalvanizada && (
+        {items && items.length > 0 && esCatalogoCosto && (
           <div className="table-wrap">
             <table className="data-table">
               <thead>
@@ -264,7 +296,7 @@ export default function MarkupsChapa() {
               </thead>
               <tbody>
                 {items.map((c) => {
-                  const p = preciosGalvPorClave[`${c.espesor}·${c.ancho_mm}`];
+                  const p = preciosPorClave[`${c.espesor}·${c.ancho_mm}`];
                   return (
                     <tr key={c.id}>
                       <td>
@@ -281,7 +313,7 @@ export default function MarkupsChapa() {
                         {/* Recarga todo (no solo el item local): "Venta U$S/kg" y "Venta
                             $/kg" dependen de este toggle, y salen de un fetch aparte
                             (lista-precios) que quedaría desactualizado con un patch local. */}
-                        <IncrementoCell chapa={c} onGuardado={cargar} />
+                        <IncrementoCell chapa={c} actualizar={catalogo.actualizar} onGuardado={cargar} />
                       </td>
                       <td className="num col-right">{p ? Number(p.precio_venta_usd_kg).toFixed(4) : "—"}</td>
                       <td className="num col-right">
@@ -315,7 +347,7 @@ export default function MarkupsChapa() {
         )}
       </div>
 
-      {modal && !esGalvanizada && (
+      {modal && !esCatalogoCosto && (
         <MarkupFormModal
           markup={modal === "nuevo" ? { tipo: tab } : modal}
           onClose={() => setModal(null)}
@@ -323,8 +355,9 @@ export default function MarkupsChapa() {
         />
       )}
 
-      {modal && esGalvanizada && (
-        <GalvanizadaFormModal
+      {modal && esCatalogoCosto && (
+        <CatalogoCostoFormModal
+          tipo={catalogo.tipo}
           chapa={modal === "nuevo" ? null : modal}
           onClose={() => setModal(null)}
           onSaved={onSaved}
