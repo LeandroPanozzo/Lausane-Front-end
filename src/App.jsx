@@ -6,6 +6,7 @@ import { CartProvider } from "./context/CartContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Layout from "./components/Layout";
 import PublicLayout from "./components/PublicLayout";
+import ScrollToTop from "./components/ScrollToTop";
 
 import Login from "./pages/Login";
 import RecuperarPassword from "./pages/RecuperarPassword";
@@ -42,6 +43,7 @@ export default function App() {
       <AuthProvider>
         <DolarProvider>
           <CartProvider>
+            <ScrollToTop />
             <Suspense fallback={<CargandoPagina />}>
               <Routes>
                 {/* Sitio público (lausane.com.ar) — sin botón de login, se
