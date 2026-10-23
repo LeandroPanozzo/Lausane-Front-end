@@ -120,6 +120,13 @@ export default function ClienteDetalle() {
             {Number(cliente.incremento_dd).toFixed(2)}% / {Number(cliente.incremento_negra).toFixed(2)}%
           </div>
         </div>
+        <div className="stat-card">
+          <div className="stat-label">% Descuento DD / Negra</div>
+          <div className="stat-value num">
+            {Number(cliente.descuento_dd).toFixed(2)}% / {Number(cliente.descuento_negra).toFixed(2)}%
+          </div>
+          <div className="stat-sub">Propio de este cliente — se edita en Clientes</div>
+        </div>
         {base && tab !== "TUBOS" && (
           <>
             <div className="stat-card">

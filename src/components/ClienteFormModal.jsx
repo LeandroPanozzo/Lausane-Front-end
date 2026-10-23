@@ -3,7 +3,11 @@ import Modal from "./Modal";
 import { crearCliente, actualizarCliente } from "../api/clientes";
 import { extraerMensajeError } from "../api/client";
 
-const VACIO = { numero: "", nombre: "", email: "", telefono: "", incremento_dd: "", incremento_negra: "", activo: true, notas: "" };
+const VACIO = {
+  numero: "", nombre: "", email: "", telefono: "",
+  incremento_dd: "", incremento_negra: "", descuento_dd: "0", descuento_negra: "0",
+  activo: true, notas: "",
+};
 
 export default function ClienteFormModal({ cliente, onClose, onSaved }) {
   const editando = Boolean(cliente);
@@ -16,6 +20,8 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
           telefono: cliente.telefono || "",
           incremento_dd: cliente.incremento_dd,
           incremento_negra: cliente.incremento_negra,
+          descuento_dd: cliente.descuento_dd ?? "0",
+          descuento_negra: cliente.descuento_negra ?? "0",
           activo: cliente.activo,
           notas: cliente.notas || "",
         }
@@ -38,6 +44,8 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
         numero: Number(form.numero),
         incremento_dd: Number(form.incremento_dd),
         incremento_negra: Number(form.incremento_negra),
+        descuento_dd: Number(form.descuento_dd || 0),
+        descuento_negra: Number(form.descuento_negra || 0),
       };
       const resultado = editando ? await actualizarCliente(cliente.id, payload) : await crearCliente(payload);
       onSaved(resultado);
@@ -126,6 +134,29 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
               value={form.incremento_negra}
               onChange={(e) => set("incremento_negra", e.target.value)}
               required
+            />
+          </div>
+          <div className="field">
+            <label>% Descuento DD (Laminado en Frío)</label>
+            <input
+              className="input num"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.descuento_dd}
+              onChange={(e) => set("descuento_dd", e.target.value)}
+            />
+            <div className="hint">Descuento propio de este cliente sobre el precio final. 0 = sin descuento.</div>
+          </div>
+          <div className="field">
+            <label>% Descuento Negra</label>
+            <input
+              className="input num"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.descuento_negra}
+              onChange={(e) => set("descuento_negra", e.target.value)}
             />
           </div>
         </div>
