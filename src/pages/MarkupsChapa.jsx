@@ -72,7 +72,6 @@ export default function MarkupsChapa() {
   const [incrementoInput, setIncrementoInput] = useState("");
   const [guardandoIncremento, setGuardandoIncremento] = useState(false);
   const [incrementoOk, setIncrementoOk] = useState(false);
-  const [cotizacionActual, setCotizacionActual] = useState(null);
   const [tab, setTab] = useState("DD");
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(null);
@@ -93,7 +92,6 @@ export default function MarkupsChapa() {
         setItems(listado.results ?? listado);
         setIncrementoActual(precios[catalogo.incrementoCampo]);
         setIncrementoInput((Number(precios[catalogo.incrementoCampo]) * 100).toString());
-        setCotizacionActual(precios.cotizacion_dolar?.venta ?? null);
         const mapa = {};
         precios.chapas.forEach((c) => {
           mapa[`${c.espesor}·${c.ancho_mm}`] = c;
@@ -163,16 +161,7 @@ export default function MarkupsChapa() {
   const chapasSeleccionadasData = items
     ? items
         .filter((c) => seleccionados.has(c.id))
-        .map((c) => {
-          const p = preciosPorClave[`${c.espesor}·${c.ancho_mm}`];
-          return {
-            id: c.id,
-            costo_usd_kg: c.costo_usd_kg,
-            usar_incremento_general: c.usar_incremento_general,
-            precio_venta_usd_kg: p?.precio_venta_usd_kg ?? c.costo_usd_kg,
-            precio_venta_pesos_kg: p?.precio_venta_pesos_kg ?? 0,
-          };
-        })
+        .map((c) => ({ id: c.id, costo_usd_kg: c.costo_usd_kg }))
     : [];
 
   async function onEliminar(m) {
@@ -458,8 +447,6 @@ export default function MarkupsChapa() {
       {modalMasivo && (
         <CambiarPrecioMasivoModal
           chapas={chapasSeleccionadasData}
-          incrementoActual={incrementoActual}
-          cotizacion={cotizacionActual}
           actualizar={catalogo.actualizar}
           onClose={() => setModalMasivo(false)}
           onGuardado={onGuardadoMasivo}

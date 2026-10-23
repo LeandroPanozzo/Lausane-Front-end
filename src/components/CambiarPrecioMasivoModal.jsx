@@ -2,78 +2,32 @@ import { useState } from "react";
 import Modal from "./Modal";
 import { extraerMensajeError } from "../api/client";
 
-/** Si todas las chapas seleccionadas comparten el mismo valor (redondeado a
- * `decimales`), lo devuelve para precargarlo — si no, devuelve "" para que el
+/** Si todas las chapas seleccionadas comparten el mismo costo (redondeado a
+ * 4 decimales), lo devuelve para precargarlo — si no, devuelve "" para que el
  * cuadro quede vacío y el usuario cargue el valor nuevo a mano. */
-function valorComunOVacio(valores, decimales) {
-  const vistos = new Set(valores.map((v) => Number(v).toFixed(decimales)));
+function valorComunOVacio(valores) {
+  const vistos = new Set(valores.map((v) => Number(v).toFixed(4)));
   return vistos.size === 1 ? [...vistos][0] : "";
 }
 
-const CAMPOS = [
-  { clave: "costo", label: "Costo (U$S/kg)", decimales: 4 },
-  { clave: "ventaUsd", label: "Venta (U$S/kg)", decimales: 4 },
-  { clave: "ventaPesos", label: "Venta ($/kg)", decimales: 2 },
-];
-
-export default function CambiarPrecioMasivoModal({
-  chapas, incrementoActual, cotizacion, actualizar, onClose, onGuardado,
-}) {
-  const [activos, setActivos] = useState({ costo: false, ventaUsd: false, ventaPesos: false });
-  const [valores, setValores] = useState({
-    costo: valorComunOVacio(chapas.map((c) => c.costo_usd_kg), 4),
-    ventaUsd: valorComunOVacio(chapas.map((c) => c.precio_venta_usd_kg), 4),
-    ventaPesos: valorComunOVacio(chapas.map((c) => c.precio_venta_pesos_kg), 2),
-  });
+export default function CambiarPrecioMasivoModal({ chapas, actualizar, onClose, onGuardado }) {
+  const [valor, setValor] = useState(valorComunOVacio(chapas.map((c) => c.costo_usd_kg)));
   const [error, setError] = useState(null);
   const [guardando, setGuardando] = useState(false);
-
-  function toggle(clave) {
-    setActivos((a) => ({ ...a, [clave]: !a[clave] }));
-  }
-
-  function setValor(clave, valor) {
-    setValores((v) => ({ ...v, [clave]: valor }));
-  }
-
-  function incrementoEfectivo(chapa) {
-    return chapa.usar_incremento_general ? Number(incrementoActual) : 0;
-  }
 
   async function onSubmit(e) {
     e.preventDefault();
     setError(null);
 
-    const algunoActivo = CAMPOS.some((c) => activos[c.clave]);
-    if (!algunoActivo) {
-      setError("Marcá al menos uno de los tres valores para cambiar.");
+    if (valor === "" || Number.isNaN(Number(valor))) {
+      setError("Cargá un costo válido.");
       return;
-    }
-    for (const c of CAMPOS) {
-      if (activos[c.clave] && (valores[c.clave] === "" || Number.isNaN(Number(valores[c.clave])))) {
-        setError(`Completá un valor válido para "${c.label}".`);
-        return;
-      }
     }
 
     setGuardando(true);
     try {
       await Promise.all(
-        chapas.map((chapa) => {
-          let costoFinal = Number(chapa.costo_usd_kg);
-          // Se aplican en este orden si hay más de uno marcado (el último gana).
-          if (activos.costo) {
-            costoFinal = Number(valores.costo);
-          }
-          if (activos.ventaUsd) {
-            costoFinal = Number(valores.ventaUsd) / (1 + incrementoEfectivo(chapa));
-          }
-          if (activos.ventaPesos) {
-            const ventaUsdDesdePesos = Number(valores.ventaPesos) / Number(cotizacion);
-            costoFinal = ventaUsdDesdePesos / (1 + incrementoEfectivo(chapa));
-          }
-          return actualizar(chapa.id, { costo_usd_kg: Math.round(costoFinal * 10000) / 10000 });
-        })
+        chapas.map((chapa) => actualizar(chapa.id, { costo_usd_kg: Number(valor) }))
       );
       onGuardado();
     } catch (err) {
@@ -100,47 +54,22 @@ export default function CambiarPrecioMasivoModal({
     >
       {error && <div className="alert alert-danger">{error}</div>}
       <p className="hint" style={{ marginTop: 0 }}>
-        Marcá cuáles de estos tres valores querés cambiar. Si las chapas elegidas ya tienen el mismo
-        valor, aparece precargado — si no, el cuadro queda vacío para que cargues el nuevo.
+        Solo se puede cambiar el Costo (U$S/kg) — Venta U$S/kg y Venta $/kg salen solas de ahí
+        (Costo + el incremento general, y eso multiplicado por la cotización del dólar), así que no
+        tiene sentido editarlas por separado.
       </p>
       <form onSubmit={onSubmit}>
-        {CAMPOS.map((c) => (
-          <div
-            key={c.clave}
-            style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}
-          >
-            <input
-              type="checkbox"
-              checked={activos[c.clave]}
-              onChange={() => toggle(c.clave)}
-              id={`campo-${c.clave}`}
-            />
-            <label htmlFor={`campo-${c.clave}`} style={{ width: 160, fontSize: 13, cursor: "pointer" }}>
-              {c.label}
-            </label>
-            <input
-              className="input num"
-              type="number"
-              step={c.decimales === 4 ? "0.0001" : "0.01"}
-              value={valores[c.clave]}
-              onChange={(e) => setValor(c.clave, e.target.value)}
-              disabled={!activos[c.clave]}
-              placeholder={valores[c.clave] === "" ? "Distintos valores — cargar uno nuevo" : ""}
-              style={{ flex: 1 }}
-            />
-          </div>
-        ))}
-        <div className="hint" style={{ marginTop: 4 }}>
-          Estos tres valores están conectados entre sí (Venta sale de Costo + el incremento, y Venta
-          en pesos sale de multiplicar eso por la cotización del dólar) — no son independientes. Por
-          eso, si marcás más de uno a la vez, solo se usa <b>el que esté más abajo en esta lista</b>{" "}
-          (no importa en qué orden los hayas tildado): Costo, después Venta U$S/kg, después Venta $/kg.
-          <br />
-          <i>Ejemplo: si marcás Costo y Venta U$S/kg juntos, se usa el valor que pusiste en "Venta
-          U$S/kg" y el de "Costo" se ignora.</i>
-          <br />
-          Si solo te interesa cambiar una cosa, marcá nada más que esa — es lo más simple y evita
-          confusiones.
+        <div className="field">
+          <label>Costo (U$S/kg)</label>
+          <input
+            className="input num"
+            type="number"
+            step="0.0001"
+            autoFocus
+            value={valor}
+            onChange={(e) => setValor(e.target.value)}
+            placeholder={valor === "" ? "Distintos valores — cargá el nuevo" : ""}
+          />
         </div>
       </form>
     </Modal>
