@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { obtenerCliente, obtenerPreciosCliente } from "../api/clientes";
 import { listaPreciosTubos } from "../api/tubos";
 import { listaPreciosGalvanizada } from "../api/galvanizada";
+import { listaPreciosGruesas } from "../api/gruesas";
 import { Loading } from "../components/Ui";
 import AgregarAlCarrito from "../components/AgregarAlCarrito";
 import { useCart } from "../context/CartContext";
@@ -16,6 +17,7 @@ export default function ClienteDetalle() {
   const [precios, setPrecios] = useState(null);
   const [tubos, setTubos] = useState(null);
   const [galvanizada, setGalvanizada] = useState(null);
+  const [gruesas, setGruesas] = useState(null);
   const [tab, setTab] = useState("DD");
   const [error, setError] = useState(null);
   const [actualizando, setActualizando] = useState(false);
@@ -28,16 +30,18 @@ export default function ClienteDetalle() {
       setError(null);
       if (forzarDolar) setActualizando(true);
       try {
-        const [c, p, t, g] = await Promise.all([
+        const [c, p, t, g, gr] = await Promise.all([
           obtenerCliente(id),
           obtenerPreciosCliente(id, { forzarDolar }),
           listaPreciosTubos({ forzarDolar }),
           listaPreciosGalvanizada({ forzarDolar }),
+          listaPreciosGruesas({ forzarDolar }),
         ]);
         setCliente(c);
         setPrecios(p);
         setTubos(t);
         setGalvanizada(g);
+        setGruesas(gr);
       } catch {
         setError("No se pudo cargar la lista de precios del cliente.");
       } finally {
@@ -52,7 +56,7 @@ export default function ClienteDetalle() {
   }, [cargar]);
 
   if (error) return <div className="alert alert-danger">{error}</div>;
-  if (!cliente || !precios || !tubos || !galvanizada) return <Loading label="Calculando lista de precios…" />;
+  if (!cliente || !precios || !tubos || !galvanizada || !gruesas) return <Loading label="Calculando lista de precios…" />;
 
   const hayConflictoCarrito = carrito && clienteActivoId && clienteActivoId !== cliente.id;
 
@@ -139,6 +143,7 @@ export default function ClienteDetalle() {
             <div className={`tab ${tab === "DD" ? "active" : ""}`} onClick={() => setTab("DD")}>Laminado en Frío</div>
             <div className={`tab ${tab === "NEGRA" ? "active" : ""}`} onClick={() => setTab("NEGRA")}>Negra</div>
             <div className={`tab ${tab === "GALVANIZADA" ? "active" : ""}`} onClick={() => setTab("GALVANIZADA")}>Galvanizada</div>
+            <div className={`tab ${tab === "GRUESA" ? "active" : ""}`} onClick={() => setTab("GRUESA")}>Gruesas</div>
             <div className={`tab ${tab === "TUBOS" ? "active" : ""}`} onClick={() => setTab("TUBOS")}>Tubos</div>
           </div>
         </div>
@@ -219,6 +224,48 @@ export default function ClienteDetalle() {
                           confirmarYAgregar({
                             tipo: "CHAPA",
                             descripcion: `Chapa Galvanizada · espesor ${c.espesor} · ancho ${c.ancho_mm}mm`,
+                            cantidad,
+                            unidad,
+                            precio_unitario_pesos: Number(c.precio_venta_pesos_kg),
+                          })
+                        }
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {tab === "GRUESA" && (
+          <div className="table-wrap">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Espesor</th>
+                  <th>Ancho (mm)</th>
+                  <th className="col-right">Venta U$S/kg</th>
+                  <th className="col-right">Venta $/kg</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {gruesas.chapas.map((c, i) => (
+                  <tr key={i}>
+                    <td>{c.espesor}</td>
+                    <td className="cell-muted">{c.ancho_mm}</td>
+                    <td className="num col-right">{Number(c.precio_venta_usd_kg).toFixed(4)}</td>
+                    <td className="num col-right">
+                      {Number(c.precio_venta_pesos_kg).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td style={{ minWidth: 190 }}>
+                      <AgregarAlCarrito
+                        unidadDefault="kg"
+                        onAgregar={(cantidad, unidad) =>
+                          confirmarYAgregar({
+                            tipo: "CHAPA",
+                            descripcion: `Chapa Gruesa · espesor ${c.espesor} · ancho ${c.ancho_mm}mm`,
                             cantidad,
                             unidad,
                             precio_unitario_pesos: Number(c.precio_venta_pesos_kg),
