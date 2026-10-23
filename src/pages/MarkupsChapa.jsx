@@ -200,14 +200,7 @@ export default function MarkupsChapa() {
       </div>
 
       {tab === "GRUESA" && modoSeleccionMasiva && (
-        <div
-          style={{
-            position: "fixed", bottom: 24, right: 24, zIndex: 50,
-            background: "#fff", border: "1px solid var(--border-strong)",
-            borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow)",
-            padding: "14px 18px", display: "flex", alignItems: "center", gap: 12,
-          }}
-        >
+        <div className="barra-seleccion-masiva">
           <span style={{ fontSize: 13, fontWeight: 600 }}>
             {seleccionados.size} seleccionada{seleccionados.size === 1 ? "" : "s"}
           </span>
