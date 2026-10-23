@@ -9,6 +9,7 @@ import {
 import { Loading, EmptyState } from "../components/Ui";
 import MarkupFormModal from "../components/MarkupFormModal";
 import CatalogoCostoFormModal from "../components/CatalogoCostoFormModal";
+import CambiarPrecioMasivoModal from "../components/CambiarPrecioMasivoModal";
 
 // Galvanizada y Gruesas comparten exactamente la misma lógica (costo propio
 // en U$S/kg por espesor/ancho + un % de incremento general editable, con
@@ -71,10 +72,14 @@ export default function MarkupsChapa() {
   const [incrementoInput, setIncrementoInput] = useState("");
   const [guardandoIncremento, setGuardandoIncremento] = useState(false);
   const [incrementoOk, setIncrementoOk] = useState(false);
+  const [cotizacionActual, setCotizacionActual] = useState(null);
   const [tab, setTab] = useState("DD");
   const [error, setError] = useState(null);
   const [modal, setModal] = useState(null);
   const [borrando, setBorrando] = useState(null);
+  const [modoSeleccionMasiva, setModoSeleccionMasiva] = useState(false);
+  const [seleccionados, setSeleccionados] = useState(() => new Set());
+  const [modalMasivo, setModalMasivo] = useState(false);
 
   const catalogo = CATALOGOS_COSTO[tab];
   const esCatalogoCosto = Boolean(catalogo);
@@ -88,6 +93,7 @@ export default function MarkupsChapa() {
         setItems(listado.results ?? listado);
         setIncrementoActual(precios[catalogo.incrementoCampo]);
         setIncrementoInput((Number(precios[catalogo.incrementoCampo]) * 100).toString());
+        setCotizacionActual(precios.cotizacion_dolar?.venta ?? null);
         const mapa = {};
         precios.chapas.forEach((c) => {
           mapa[`${c.espesor}·${c.ancho_mm}`] = c;
@@ -105,6 +111,11 @@ export default function MarkupsChapa() {
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  useEffect(() => {
+    setModoSeleccionMasiva(false);
+    setSeleccionados(new Set());
+  }, [tab]);
 
   function onSaved() {
     setModal(null);
@@ -128,6 +139,42 @@ export default function MarkupsChapa() {
     }
   }
 
+  function toggleSeleccionMasiva() {
+    setModoSeleccionMasiva((v) => !v);
+    setSeleccionados(new Set());
+  }
+
+  function toggleSeleccionado(id) {
+    setSeleccionados((prev) => {
+      const nuevo = new Set(prev);
+      if (nuevo.has(id)) nuevo.delete(id);
+      else nuevo.add(id);
+      return nuevo;
+    });
+  }
+
+  function onGuardadoMasivo() {
+    setModalMasivo(false);
+    setModoSeleccionMasiva(false);
+    setSeleccionados(new Set());
+    cargar();
+  }
+
+  const chapasSeleccionadasData = items
+    ? items
+        .filter((c) => seleccionados.has(c.id))
+        .map((c) => {
+          const p = preciosPorClave[`${c.espesor}·${c.ancho_mm}`];
+          return {
+            id: c.id,
+            costo_usd_kg: c.costo_usd_kg,
+            usar_incremento_general: c.usar_incremento_general,
+            precio_venta_usd_kg: p?.precio_venta_usd_kg ?? c.costo_usd_kg,
+            precio_venta_pesos_kg: p?.precio_venta_pesos_kg ?? 0,
+          };
+        })
+    : [];
+
   async function onEliminar(m) {
     const etiqueta = `${m.espesor} · ${m.ancho_mm}mm`;
     if (!window.confirm(`¿Eliminar "${etiqueta}"?`)) return;
@@ -149,9 +196,32 @@ export default function MarkupsChapa() {
           <span className="eyebrow">Chapa</span>
           <h1>Chapas</h1>
         </div>
-        <button className="btn btn-primary" onClick={() => setModal("nuevo")}>
-          {esCatalogoCosto ? "+ Nueva chapa" : "+ Nuevo recargo"}
-        </button>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+          {tab === "GRUESA" && !modoSeleccionMasiva && (
+            <button className="btn" onClick={toggleSeleccionMasiva}>
+              Cambiar precio en conjunto
+            </button>
+          )}
+          {tab === "GRUESA" && modoSeleccionMasiva && (
+            <>
+              <button className="btn btn-ghost" onClick={toggleSeleccionMasiva}>
+                Cancelar
+              </button>
+              <button
+                className="btn btn-primary"
+                disabled={seleccionados.size === 0}
+                onClick={() => setModalMasivo(true)}
+              >
+                Aceptar ({seleccionados.size} seleccionada{seleccionados.size === 1 ? "" : "s"})
+              </button>
+            </>
+          )}
+          {!modoSeleccionMasiva && (
+            <button className="btn btn-primary" onClick={() => setModal("nuevo")}>
+              {esCatalogoCosto ? "+ Nueva chapa" : "+ Nuevo recargo"}
+            </button>
+          )}
+        </div>
       </div>
 
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18, maxWidth: 640 }}>
@@ -285,6 +355,7 @@ export default function MarkupsChapa() {
             <table className="data-table">
               <thead>
                 <tr>
+                  {tab === "GRUESA" && modoSeleccionMasiva && <th></th>}
                   <th>Espesor</th>
                   <th>Ancho (mm)</th>
                   <th className="col-right">Costo U$S/kg</th>
@@ -299,6 +370,15 @@ export default function MarkupsChapa() {
                   const p = preciosPorClave[`${c.espesor}·${c.ancho_mm}`];
                   return (
                     <tr key={c.id}>
+                      {tab === "GRUESA" && modoSeleccionMasiva && (
+                        <td>
+                          <input
+                            type="checkbox"
+                            checked={seleccionados.has(c.id)}
+                            onChange={() => toggleSeleccionado(c.id)}
+                          />
+                        </td>
+                      )}
                       <td>
                         <span className={c.activo ? "" : "texto-inactivo"}>{c.espesor}</span>
                         {!c.activo && (
@@ -361,6 +441,17 @@ export default function MarkupsChapa() {
           chapa={modal === "nuevo" ? null : modal}
           onClose={() => setModal(null)}
           onSaved={onSaved}
+        />
+      )}
+
+      {modalMasivo && (
+        <CambiarPrecioMasivoModal
+          chapas={chapasSeleccionadasData}
+          incrementoActual={incrementoActual}
+          cotizacion={cotizacionActual}
+          actualizar={catalogo.actualizar}
+          onClose={() => setModalMasivo(false)}
+          onGuardado={onGuardadoMasivo}
         />
       )}
     </>
