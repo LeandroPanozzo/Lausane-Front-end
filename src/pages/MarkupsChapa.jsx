@@ -202,20 +202,6 @@ export default function MarkupsChapa() {
               Cambiar precio en conjunto
             </button>
           )}
-          {tab === "GRUESA" && modoSeleccionMasiva && (
-            <>
-              <button className="btn btn-ghost" onClick={toggleSeleccionMasiva}>
-                Cancelar
-              </button>
-              <button
-                className="btn btn-primary"
-                disabled={seleccionados.size === 0}
-                onClick={() => setModalMasivo(true)}
-              >
-                Aceptar ({seleccionados.size} seleccionada{seleccionados.size === 1 ? "" : "s"})
-              </button>
-            </>
-          )}
           {!modoSeleccionMasiva && (
             <button className="btn btn-primary" onClick={() => setModal("nuevo")}>
               {esCatalogoCosto ? "+ Nueva chapa" : "+ Nuevo recargo"}
@@ -223,6 +209,31 @@ export default function MarkupsChapa() {
           )}
         </div>
       </div>
+
+      {tab === "GRUESA" && modoSeleccionMasiva && (
+        <div
+          style={{
+            position: "fixed", bottom: 24, right: 24, zIndex: 50,
+            background: "#fff", border: "1px solid var(--border-strong)",
+            borderRadius: "var(--radius-lg)", boxShadow: "var(--shadow)",
+            padding: "14px 18px", display: "flex", alignItems: "center", gap: 12,
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600 }}>
+            {seleccionados.size} seleccionada{seleccionados.size === 1 ? "" : "s"}
+          </span>
+          <button className="btn btn-ghost" onClick={toggleSeleccionMasiva}>
+            Cancelar
+          </button>
+          <button
+            className="btn btn-primary"
+            disabled={seleccionados.size === 0}
+            onClick={() => setModalMasivo(true)}
+          >
+            Aceptar
+          </button>
+        </div>
+      )}
 
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18, maxWidth: 640 }}>
         {esCatalogoCosto

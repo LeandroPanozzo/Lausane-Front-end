@@ -131,8 +131,16 @@ export default function CambiarPrecioMasivoModal({
           </div>
         ))}
         <div className="hint" style={{ marginTop: 4 }}>
-          Si marcás más de uno, se aplican en este orden (el último pisa a los anteriores): Costo →
-          Venta U$S/kg → Venta $/kg.
+          Estos tres valores están conectados entre sí (Venta sale de Costo + el incremento, y Venta
+          en pesos sale de multiplicar eso por la cotización del dólar) — no son independientes. Por
+          eso, si marcás más de uno a la vez, solo se usa <b>el que esté más abajo en esta lista</b>{" "}
+          (no importa en qué orden los hayas tildado): Costo, después Venta U$S/kg, después Venta $/kg.
+          <br />
+          <i>Ejemplo: si marcás Costo y Venta U$S/kg juntos, se usa el valor que pusiste en "Venta
+          U$S/kg" y el de "Costo" se ignora.</i>
+          <br />
+          Si solo te interesa cambiar una cosa, marcá nada más que esa — es lo más simple y evita
+          confusiones.
         </div>
       </form>
     </Modal>
