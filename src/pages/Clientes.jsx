@@ -107,6 +107,8 @@ export default function Clientes() {
                     <th>Nombre</th>
                     <th className="col-right">% Incr. DD</th>
                     <th className="col-right">% Incr. Negra</th>
+                    <th className="col-right">% Desc. DD</th>
+                    <th className="col-right">% Desc. Negra</th>
                     <th>Estado</th>
                     <th></th>
                   </tr>
@@ -120,6 +122,20 @@ export default function Clientes() {
                       </td>
                       <td className="num col-right">{Number(c.incremento_dd).toFixed(2)}%</td>
                       <td className="num col-right">{Number(c.incremento_negra).toFixed(2)}%</td>
+                      <td className="num col-right">
+                        {Number(c.descuento_dd) > 0 ? (
+                          `${Number(c.descuento_dd).toFixed(2)}%`
+                        ) : (
+                          <span className="cell-muted">—</span>
+                        )}
+                      </td>
+                      <td className="num col-right">
+                        {Number(c.descuento_negra) > 0 ? (
+                          `${Number(c.descuento_negra).toFixed(2)}%`
+                        ) : (
+                          <span className="cell-muted">—</span>
+                        )}
+                      </td>
                       <td>
                         <span className={`badge ${c.activo ? "badge-ok" : "badge-danger"}`}>
                           {c.activo ? "Activo" : "Inactivo"}
