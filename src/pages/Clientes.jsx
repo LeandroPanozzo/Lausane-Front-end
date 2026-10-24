@@ -109,6 +109,7 @@ export default function Clientes() {
                     <th className="col-right">% Incr. Negra</th>
                     <th className="col-right">% Desc. DD</th>
                     <th className="col-right">% Desc. Negra</th>
+                    <th className="col-right">% Desc. Galv.</th>
                     <th>Estado</th>
                     <th></th>
                   </tr>
@@ -132,6 +133,13 @@ export default function Clientes() {
                       <td className="num col-right">
                         {Number(c.descuento_negra) > 0 ? (
                           `${Number(c.descuento_negra).toFixed(2)}%`
+                        ) : (
+                          <span className="cell-muted">—</span>
+                        )}
+                      </td>
+                      <td className="num col-right">
+                        {Number(c.descuento_galvanizada) > 0 ? (
+                          `${Number(c.descuento_galvanizada).toFixed(2)}%`
                         ) : (
                           <span className="cell-muted">—</span>
                         )}

@@ -19,9 +19,10 @@ export async function eliminarGalvanizada(id) {
   await api.delete(`/galvanizada/${id}/`);
 }
 
-export async function listaPreciosGalvanizada({ forzarDolar = false } = {}) {
-  const res = await api.get("/galvanizada/lista-precios/", {
-    params: forzarDolar ? { forzar_dolar: "true" } : {},
-  });
+export async function listaPreciosGalvanizada({ forzarDolar = false, clienteId = null } = {}) {
+  const params = {};
+  if (forzarDolar) params.forzar_dolar = "true";
+  if (clienteId) params.cliente_id = clienteId;
+  const res = await api.get("/galvanizada/lista-precios/", { params });
   return res.data;
 }

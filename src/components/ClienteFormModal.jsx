@@ -5,7 +5,8 @@ import { extraerMensajeError } from "../api/client";
 
 const VACIO = {
   numero: "", nombre: "", email: "", telefono: "",
-  incremento_dd: "", incremento_negra: "", descuento_dd: "0", descuento_negra: "0",
+  incremento_dd: "", incremento_negra: "",
+  descuento_dd: "0", descuento_negra: "0", descuento_galvanizada: "0",
   activo: true, notas: "",
 };
 
@@ -22,6 +23,7 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
           incremento_negra: cliente.incremento_negra,
           descuento_dd: cliente.descuento_dd ?? "0",
           descuento_negra: cliente.descuento_negra ?? "0",
+          descuento_galvanizada: cliente.descuento_galvanizada ?? "0",
           activo: cliente.activo,
           notas: cliente.notas || "",
         }
@@ -41,12 +43,18 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
     try {
       const payload = {
         ...form,
-        numero: Number(form.numero),
         incremento_dd: Number(form.incremento_dd),
         incremento_negra: Number(form.incremento_negra),
         descuento_dd: Number(form.descuento_dd || 0),
         descuento_negra: Number(form.descuento_negra || 0),
+        descuento_galvanizada: Number(form.descuento_galvanizada || 0),
       };
+      if (editando) {
+        payload.numero = Number(form.numero);
+      } else {
+        // Nuevo cliente: no mandamos numero, el backend asigna el siguiente libre.
+        delete payload.numero;
+      }
       const resultado = editando ? await actualizarCliente(cliente.id, payload) : await crearCliente(payload);
       onSaved(resultado);
     } catch (err) {
@@ -74,16 +82,23 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
       {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={onSubmit}>
         <div className="form-grid">
-          <div className="field">
-            <label>Número de cliente</label>
-            <input
-              className="input"
-              type="number"
-              value={form.numero}
-              onChange={(e) => set("numero", e.target.value)}
-              required
-            />
-          </div>
+          {editando ? (
+            <div className="field">
+              <label>Número de cliente</label>
+              <input
+                className="input"
+                type="number"
+                value={form.numero}
+                onChange={(e) => set("numero", e.target.value)}
+                required
+              />
+            </div>
+          ) : (
+            <div className="field">
+              <label>Número de cliente</label>
+              <input className="input" value="Se asigna automático" disabled />
+            </div>
+          )}
           <div className="field" style={{ gridColumn: "1 / -1" }}>
             <label>Nombre / alias</label>
             <input
@@ -157,6 +172,17 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
               step="0.01"
               value={form.descuento_negra}
               onChange={(e) => set("descuento_negra", e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label>% Descuento Galvanizada</label>
+            <input
+              className="input num"
+              type="number"
+              min="0"
+              step="0.01"
+              value={form.descuento_galvanizada}
+              onChange={(e) => set("descuento_galvanizada", e.target.value)}
             />
           </div>
         </div>

@@ -34,7 +34,7 @@ export default function ClienteDetalle() {
           obtenerCliente(id),
           obtenerPreciosCliente(id, { forzarDolar }),
           listaPreciosTubos({ forzarDolar }),
-          listaPreciosGalvanizada({ forzarDolar }),
+          listaPreciosGalvanizada({ forzarDolar, clienteId: id }),
           listaPreciosGruesas({ forzarDolar }),
         ]);
         setCliente(c);
@@ -127,6 +127,13 @@ export default function ClienteDetalle() {
           </div>
           <div className="stat-sub">Propio de este cliente — se edita en Clientes</div>
         </div>
+        {tab === "GALVANIZADA" && (
+          <div className="stat-card">
+            <div className="stat-label">% Descuento Galvanizada</div>
+            <div className="stat-value num">{Number(cliente.descuento_galvanizada).toFixed(2)}%</div>
+            <div className="stat-sub">Propio de este cliente — se edita en Clientes</div>
+          </div>
+        )}
         {base && tab !== "TUBOS" && (
           <>
             <div className="stat-card">
