@@ -4,14 +4,13 @@ import {
   obtenerPresupuesto,
   descargarArchivoPresupuesto,
   abrirPdfPresupuesto,
+  obtenerBlobPdfPresupuesto,
   enviarPresupuestoPorEmail,
   marcarPresupuestoEnviado,
 } from "../api/presupuestos";
 import { extraerMensajeError } from "../api/client";
 import { Loading } from "../components/Ui";
 import Modal from "../components/Modal";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
 
 export default function PresupuestoDetalle() {
   const { id } = useParams();
@@ -36,8 +35,6 @@ export default function PresupuestoDetalle() {
   if (error) return <div className="alert alert-danger">{error}</div>;
   if (!presupuesto) return <Loading label="Cargando presupuesto…" />;
 
-  const linkPublico = `${API_URL}/presupuestos-publico/${presupuesto.token_publico}/pdf/`;
-
   async function conCarga(clave, fn) {
     setCargando((c) => ({ ...c, [clave]: true }));
     try {
@@ -55,11 +52,42 @@ export default function PresupuestoDetalle() {
       alert("Este cliente no tiene un teléfono cargado. Agregalo desde la ficha del cliente para poder enviarlo por WhatsApp.");
       return;
     }
-    const mensaje =
-      `Hola ${presupuesto.cliente_detalle.nombre}, te compartimos el Presupuesto Lausane N° ${presupuesto.codigo} ` +
-      `por un total de $${Number(presupuesto.total_pesos).toLocaleString("es-AR")}.\n\nPodés verlo acá: ${linkPublico}`;
-    window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensaje)}`, "_blank");
     conCarga("whatsapp", async () => {
+      const mensaje =
+        `Hola ${presupuesto.cliente_detalle.nombre}, te compartimos el Presupuesto Lausane N° ${presupuesto.codigo} ` +
+        `por un total de $${Number(presupuesto.total_pesos).toLocaleString("es-AR")}.`;
+      const nombreArchivo = `presupuesto_lausane_${presupuesto.numero}.pdf`;
+      const blobPdf = await obtenerBlobPdfPresupuesto(presupuesto.id);
+      const archivo = new File([blobPdf], nombreArchivo, { type: "application/pdf" });
+
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        // Abre el selector nativo (compartir) con el PDF ya adjunto: ahí el
+        // usuario elige WhatsApp y el archivo viaja como archivo real.
+        try {
+          await navigator.share({
+            files: [archivo],
+            text: mensaje,
+            title: `Presupuesto ${presupuesto.codigo}`,
+          });
+        } catch (err) {
+          if (err?.name === "AbortError") return; // el usuario cerró el selector, no es un error
+          throw err;
+        }
+      } else {
+        // El navegador no puede compartir archivos (típico en desktop): bajamos
+        // el PDF y abrimos WhatsApp con el texto, para adjuntarlo a mano.
+        const url = window.URL.createObjectURL(archivo);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = nombreArchivo;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        const mensajeDescarga = `${mensaje}\n\nSe descargó el PDF a tu dispositivo: adjuntalo en este chat antes de enviar.`;
+        window.open(`https://wa.me/${telefono}?text=${encodeURIComponent(mensajeDescarga)}`, "_blank");
+      }
+
       await marcarPresupuestoEnviado(presupuesto.id);
       await cargar();
     });

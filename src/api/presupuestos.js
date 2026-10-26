@@ -48,3 +48,9 @@ export async function abrirPdfPresupuesto(id) {
   const url = window.URL.createObjectURL(new Blob([res.data], { type: "application/pdf" }));
   window.open(url, "_blank");
 }
+
+/** Trae el PDF como Blob crudo, sin descargarlo ni abrirlo (para adjuntarlo, ej. en WhatsApp). */
+export async function obtenerBlobPdfPresupuesto(id) {
+  const res = await api.get(`/presupuestos/${id}/pdf/`, { responseType: "blob" });
+  return new Blob([res.data], { type: "application/pdf" });
+}
