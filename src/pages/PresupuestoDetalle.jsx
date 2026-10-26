@@ -8,6 +8,7 @@ import {
   enviarPresupuestoPorEmail,
   marcarPresupuestoEnviado,
 } from "../api/presupuestos";
+import { intentarEnviarPorExtension } from "../api/whatsappExtension";
 import { extraerMensajeError } from "../api/client";
 import { Loading } from "../components/Ui";
 import Modal from "../components/Modal";
@@ -59,6 +60,22 @@ export default function PresupuestoDetalle() {
       const nombreArchivo = `presupuesto_lausane_${presupuesto.numero}.pdf`;
       const blobPdf = await obtenerBlobPdfPresupuesto(presupuesto.id);
       const archivo = new File([blobPdf], nombreArchivo, { type: "application/pdf" });
+
+      const porExtension = await intentarEnviarPorExtension({ telefono, texto: mensaje, archivo });
+      if (porExtension.disponible) {
+        if (porExtension.confirmado && !porExtension.exito) {
+          alert(
+            "Se abrió WhatsApp Web pero no se pudo adjuntar el archivo solo " +
+              `(${porExtension.error || "error desconocido"}). Probá adjuntarlo a mano en esa pestaña.`
+          );
+          return; // no lo marcamos como enviado: no hay certeza de que haya salido
+        }
+        // Confirmado con éxito, o no llegó confirmación a tiempo pero WhatsApp
+        // Web ya se abrió y lo más probable es que haya salido igual.
+        await marcarPresupuestoEnviado(presupuesto.id);
+        await cargar();
+        return;
+      }
 
       if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
         // Abre el selector nativo (compartir) con el PDF ya adjunto: ahí el
