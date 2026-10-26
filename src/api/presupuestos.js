@@ -25,6 +25,12 @@ export async function marcarPresupuestoEnviado(id) {
   return res.data;
 }
 
+/** Manda el PDF por WhatsApp automáticamente (servicio interno con sesión vinculada). */
+export async function enviarPresupuestoPorWhatsapp(id) {
+  const res = await api.post(`/presupuestos/${id}/enviar-whatsapp/`);
+  return res.data;
+}
+
 /**
  * Descarga un archivo autenticado (el PDF/Excel del presupuesto) y dispara
  * la descarga en el navegador. No se puede usar un <a href> directo porque

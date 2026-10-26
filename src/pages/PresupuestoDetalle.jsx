@@ -7,8 +7,8 @@ import {
   obtenerBlobPdfPresupuesto,
   enviarPresupuestoPorEmail,
   marcarPresupuestoEnviado,
+  enviarPresupuestoPorWhatsapp,
 } from "../api/presupuestos";
-import { intentarEnviarPorExtension } from "../api/whatsappExtension";
 import { extraerMensajeError } from "../api/client";
 import { Loading } from "../components/Ui";
 import Modal from "../components/Modal";
@@ -54,6 +54,22 @@ export default function PresupuestoDetalle() {
       return;
     }
     conCarga("whatsapp", async () => {
+      // Camino principal: el servicio de WhatsApp vinculado en el servidor
+      // manda el PDF solo, sin que haya que hacer nada más.
+      try {
+        const actualizado = await enviarPresupuestoPorWhatsapp(presupuesto.id);
+        setPresupuesto(actualizado);
+        return;
+      } catch (err) {
+        if (err?.response?.status !== 502) throw err; // 502 = servicio de WhatsApp caído/sin vincular
+      }
+
+      // Fallback: el servicio no está disponible (desconectado, sin vincular
+      // todavía, etc.) — seguimos con el camino manual de siempre.
+      alert(
+        "El envío automático por WhatsApp no está disponible en este momento " +
+          "(revisá la vinculación en Configuración). Seguimos con el envío manual."
+      );
       const mensaje =
         `Hola ${presupuesto.cliente_detalle.nombre}, te compartimos el Presupuesto Lausane N° ${presupuesto.codigo} ` +
         `por un total de $${Number(presupuesto.total_pesos).toLocaleString("es-AR")}.`;
@@ -61,38 +77,30 @@ export default function PresupuestoDetalle() {
       const blobPdf = await obtenerBlobPdfPresupuesto(presupuesto.id);
       const archivo = new File([blobPdf], nombreArchivo, { type: "application/pdf" });
 
-      const porExtension = await intentarEnviarPorExtension({ telefono, texto: mensaje, archivo });
-      if (porExtension.disponible) {
-        if (porExtension.confirmado && !porExtension.exito) {
-          alert(
-            "Se abrió WhatsApp Web pero no se pudo adjuntar el archivo solo " +
-              `(${porExtension.error || "error desconocido"}). Probá adjuntarlo a mano en esa pestaña.`
-          );
-          return; // no lo marcamos como enviado: no hay certeza de que haya salido
-        }
-        // Confirmado con éxito, o no llegó confirmación a tiempo pero WhatsApp
-        // Web ya se abrió y lo más probable es que haya salido igual.
-        await marcarPresupuestoEnviado(presupuesto.id);
-        await cargar();
-        return;
-      }
-
+      let compartidoOk = false;
       if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
         // Abre el selector nativo (compartir) con el PDF ya adjunto: ahí el
-        // usuario elige WhatsApp y el archivo viaja como archivo real.
+        // usuario elige WhatsApp y el archivo viaja como archivo real. Si el
+        // navegador dice que puede compartir pero en realidad no hay ningún
+        // selector real disponible, share() puede quedarse colgado para
+        // siempre — por eso el timeout, para no trabar el botón.
         try {
-          await navigator.share({
-            files: [archivo],
-            text: mensaje,
-            title: `Presupuesto ${presupuesto.codigo}`,
-          });
+          const TIMEOUT = Symbol("timeout");
+          const resultado = await Promise.race([
+            navigator.share({ files: [archivo], text: mensaje, title: `Presupuesto ${presupuesto.codigo}` }),
+            new Promise((resolve) => setTimeout(() => resolve(TIMEOUT), 15000)),
+          ]);
+          if (resultado !== TIMEOUT) compartidoOk = true;
         } catch (err) {
           if (err?.name === "AbortError") return; // el usuario cerró el selector, no es un error
-          throw err;
+          // cualquier otro error (o el timeout de arriba): seguimos con la descarga manual
         }
-      } else {
-        // El navegador no puede compartir archivos (típico en desktop): bajamos
-        // el PDF y abrimos WhatsApp con el texto, para adjuntarlo a mano.
+      }
+
+      if (!compartidoOk) {
+        // El navegador no puede compartir archivos (típico en desktop), o no
+        // se pudo confirmar que el selector nativo funcionó: bajamos el PDF y
+        // abrimos WhatsApp con el texto, para adjuntarlo a mano.
         const url = window.URL.createObjectURL(archivo);
         const link = document.createElement("a");
         link.href = url;

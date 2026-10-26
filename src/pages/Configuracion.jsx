@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { obtenerConfiguracion, actualizarConfiguracion, cargarCotizacionManual } from "../api/config";
+import { obtenerEstadoWhatsapp, obtenerQrWhatsapp } from "../api/whatsapp";
 import { extraerMensajeError } from "../api/client";
 import { Loading } from "../components/Ui";
 import { useDolar } from "../context/DolarContext";
@@ -20,6 +21,33 @@ export default function Configuracion() {
   useEffect(() => {
     obtenerConfiguracion().then(setForm).catch(() => setError("No se pudo cargar la configuración."));
   }, []);
+
+  const [estadoWsp, setEstadoWsp] = useState(null);
+  const [qrWsp, setQrWsp] = useState(null);
+  const qrUrlAnteriorRef = useRef(null);
+
+  const refrescarWhatsapp = useCallback(async () => {
+    try {
+      const estado = await obtenerEstadoWhatsapp();
+      setEstadoWsp(estado);
+      if (estado.estado === "esperando_qr") {
+        const url = await obtenerQrWhatsapp();
+        if (qrUrlAnteriorRef.current) window.URL.revokeObjectURL(qrUrlAnteriorRef.current);
+        qrUrlAnteriorRef.current = url;
+        setQrWsp(url);
+      } else {
+        setQrWsp(null);
+      }
+    } catch {
+      setEstadoWsp({ estado: "no_disponible" });
+    }
+  }, []);
+
+  useEffect(() => {
+    refrescarWhatsapp();
+    const intervalo = setInterval(refrescarWhatsapp, 5000);
+    return () => clearInterval(intervalo);
+  }, [refrescarWhatsapp]);
 
   function set(campo, valor) {
     setForm((f) => ({ ...f, [campo]: valor }));
@@ -233,6 +261,50 @@ export default function Configuracion() {
               </button>
             </form>
           </div>
+        </div>
+      </div>
+
+      <div className="panel" style={{ marginTop: 20, maxWidth: 480 }}>
+        <div className="panel-header">
+          <h2>WhatsApp (envío automático de presupuestos)</h2>
+        </div>
+        <div className="panel-body">
+          {!estadoWsp && <Loading />}
+
+          {estadoWsp?.estado === "conectado" && (
+            <div className="alert alert-ok">
+              ✅ Vinculado{estadoWsp.numero ? ` — número ${estadoWsp.numero}` : ""}. Los presupuestos se mandan solos por WhatsApp.
+            </div>
+          )}
+
+          {estadoWsp?.estado === "esperando_qr" && (
+            <>
+              <p style={{ marginTop: 0 }}>
+                Escaneá este código desde WhatsApp en tu teléfono: <b>Ajustes → Dispositivos vinculados → Vincular un dispositivo</b>.
+              </p>
+              {qrWsp ? (
+                <img src={qrWsp} alt="Código QR para vincular WhatsApp" style={{ width: 260, height: 260 }} />
+              ) : (
+                <Loading />
+              )}
+              <div className="hint">Se actualiza solo cada pocos segundos.</div>
+            </>
+          )}
+
+          {(estadoWsp?.estado === "desconectado" || estadoWsp?.estado === "iniciando") && (
+            <div className="alert alert-warn">Reconectando con WhatsApp, esperá unos segundos…</div>
+          )}
+
+          {estadoWsp?.estado === "no_disponible" && (
+            <div className="alert alert-danger">
+              No se pudo conectar con el servicio de WhatsApp del servidor. Mientras tanto, el envío de
+              presupuestos por WhatsApp sigue funcionando de forma manual (compartir/descargar).
+            </div>
+          )}
+
+          <button className="btn" style={{ marginTop: 14 }} onClick={refrescarWhatsapp}>
+            ↻ Actualizar
+          </button>
         </div>
       </div>
     </>
