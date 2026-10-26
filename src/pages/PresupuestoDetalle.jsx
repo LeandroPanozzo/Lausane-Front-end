@@ -8,6 +8,7 @@ import {
   enviarPresupuestoPorEmail,
   marcarPresupuestoEnviado,
   enviarPresupuestoPorWhatsapp,
+  elegirImpuestoPresupuesto,
 } from "../api/presupuestos";
 import { extraerMensajeError } from "../api/client";
 import { Loading } from "../components/Ui";
@@ -19,6 +20,8 @@ export default function PresupuestoDetalle() {
   const [error, setError] = useState(null);
   const [cargando, setCargando] = useState({});
   const [modalEmail, setModalEmail] = useState(false);
+  const [modalImpuesto, setModalImpuesto] = useState(false);
+  const [accionPendiente, setAccionPendiente] = useState(null);
 
   const cargar = useCallback(async () => {
     try {
@@ -44,6 +47,27 @@ export default function PresupuestoDetalle() {
       alert(extraerMensajeError(err, "Ocurrió un error."));
     } finally {
       setCargando((c) => ({ ...c, [clave]: false }));
+    }
+  }
+
+  /** Exige que ya se haya elegido el % de impuestos antes de ejecutar `fn` (ver/descargar/mail/wsp). */
+  function conImpuestoElegido(fn) {
+    if (presupuesto.impuesto_pct != null) {
+      fn();
+    } else {
+      setAccionPendiente(() => fn);
+      setModalImpuesto(true);
+    }
+  }
+
+  async function onElegirImpuesto(pct) {
+    const actualizado = await elegirImpuestoPresupuesto(presupuesto.id, pct);
+    setPresupuesto(actualizado);
+    setModalImpuesto(false);
+    if (accionPendiente) {
+      const fn = accionPendiente;
+      setAccionPendiente(null);
+      fn();
     }
   }
 
@@ -196,11 +220,28 @@ export default function PresupuestoDetalle() {
       </div>
 
       <div className="panel">
-        <div className="panel-header"><h2>Compartir presupuesto</h2></div>
+        <div className="panel-header">
+          <h2>Compartir presupuesto</h2>
+          {presupuesto.impuesto_pct != null && (
+            <span className="cell-muted" style={{ fontSize: 12.5 }}>
+              IVA: {Number(presupuesto.impuesto_pct)}%{" "}
+              <button
+                className="btn btn-sm btn-ghost"
+                style={{ marginLeft: 6 }}
+                onClick={() => {
+                  setAccionPendiente(null);
+                  setModalImpuesto(true);
+                }}
+              >
+                Cambiar
+              </button>
+            </span>
+          )}
+        </div>
         <div className="panel-body action-grid">
           <button
             className="btn"
-            onClick={() => conCarga("ver", () => abrirPdfPresupuesto(presupuesto.id))}
+            onClick={() => conImpuestoElegido(() => conCarga("ver", () => abrirPdfPresupuesto(presupuesto.id)))}
             disabled={cargando.ver}
           >
             {cargando.ver ? "Abriendo…" : "👁 Ver PDF"}
@@ -208,8 +249,10 @@ export default function PresupuestoDetalle() {
           <button
             className="btn"
             onClick={() =>
-              conCarga("pdf", () =>
-                descargarArchivoPresupuesto(presupuesto.id, "pdf", `presupuesto_lausane_${presupuesto.numero}.pdf`)
+              conImpuestoElegido(() =>
+                conCarga("pdf", () =>
+                  descargarArchivoPresupuesto(presupuesto.id, "pdf", `presupuesto_lausane_${presupuesto.numero}.pdf`)
+                )
               )
             }
             disabled={cargando.pdf}
@@ -227,10 +270,14 @@ export default function PresupuestoDetalle() {
           >
             {cargando.excel ? "Descargando…" : "⬇ Descargar Excel"}
           </button>
-          <button className="btn" onClick={() => setModalEmail(true)}>
+          <button className="btn" onClick={() => conImpuestoElegido(() => setModalEmail(true))}>
             ✉ Enviar por email
           </button>
-          <button className="btn btn-whatsapp" onClick={onWhatsapp} disabled={cargando.whatsapp}>
+          <button
+            className="btn btn-whatsapp"
+            onClick={() => conImpuestoElegido(onWhatsapp)}
+            disabled={cargando.whatsapp}
+          >
             {cargando.whatsapp ? "Abriendo…" : "💬 Enviar por WhatsApp"}
           </button>
         </div>
@@ -243,7 +290,52 @@ export default function PresupuestoDetalle() {
           onEnviado={cargar}
         />
       )}
+
+      {modalImpuesto && (
+        <ModalElegirImpuesto
+          onClose={() => {
+            setModalImpuesto(false);
+            setAccionPendiente(null);
+          }}
+          onElegir={onElegirImpuesto}
+        />
+      )}
     </>
+  );
+}
+
+function ModalElegirImpuesto({ onClose, onElegir }) {
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function elegir(pct) {
+    setError(null);
+    setGuardando(true);
+    try {
+      await onElegir(pct);
+    } catch (err) {
+      setError(extraerMensajeError(err, "No se pudo guardar el porcentaje."));
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <Modal title="Elegí el % de impuestos" onClose={onClose}>
+      {error && <div className="alert alert-danger">{error}</div>}
+      <p style={{ marginTop: 0 }}>
+        Antes de ver, descargar o mandar el presupuesto hace falta elegir qué porcentaje de impuestos
+        aparece en el PDF (abajo del total, como "+ impuestos").
+      </p>
+      <div className="form-row-actions">
+        <button className="btn btn-primary" disabled={guardando} onClick={() => elegir("10.5")}>
+          10,5%
+        </button>
+        <button className="btn btn-primary" disabled={guardando} onClick={() => elegir("21")}>
+          21%
+        </button>
+      </div>
+    </Modal>
   );
 }
 

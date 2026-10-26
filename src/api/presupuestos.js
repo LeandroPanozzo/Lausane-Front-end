@@ -31,6 +31,12 @@ export async function enviarPresupuestoPorWhatsapp(id) {
   return res.data;
 }
 
+/** Elige el % de impuestos (10.5 o 21) para este presupuesto — hace falta antes de ver/descargar/mandar el PDF. */
+export async function elegirImpuestoPresupuesto(id, impuestoPct) {
+  const res = await api.post(`/presupuestos/${id}/elegir-impuesto/`, { impuesto_pct: impuestoPct });
+  return res.data;
+}
+
 /**
  * Descarga un archivo autenticado (el PDF/Excel del presupuesto) y dispara
  * la descarga en el navegador. No se puede usar un <a href> directo porque
