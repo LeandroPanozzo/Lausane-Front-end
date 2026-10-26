@@ -177,7 +177,7 @@ export default function ClienteDetalle() {
               </thead>
               <tbody>
                 {filas.map((f, i) => (
-                  <tr key={i}>
+                  <tr key={`${tab}-${i}`}>
                     <td>{f.espesor}</td>
                     <td className="cell-muted">{f.ancho_mm}</td>
                     <td className="num col-right">
