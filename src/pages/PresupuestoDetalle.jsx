@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import {
   obtenerPresupuesto,
@@ -9,6 +9,8 @@ import {
   marcarPresupuestoEnviado,
   enviarPresupuestoPorWhatsapp,
   elegirImpuestoPresupuesto,
+  agregarExtraItem,
+  quitarExtraItem,
 } from "../api/presupuestos";
 import { extraerMensajeError } from "../api/client";
 import { Loading } from "../components/Ui";
@@ -22,6 +24,7 @@ export default function PresupuestoDetalle() {
   const [modalEmail, setModalEmail] = useState(false);
   const [modalImpuesto, setModalImpuesto] = useState(false);
   const [accionPendiente, setAccionPendiente] = useState(null);
+  const [modalExtra, setModalExtra] = useState(null); // null | item
 
   const cargar = useCallback(async () => {
     try {
@@ -57,6 +60,16 @@ export default function PresupuestoDetalle() {
     } else {
       setAccionPendiente(() => fn);
       setModalImpuesto(true);
+    }
+  }
+
+  async function onQuitarExtra(itemId, extraId) {
+    if (!window.confirm("¿Quitar este extra?")) return;
+    try {
+      const actualizado = await quitarExtraItem(presupuesto.id, itemId, extraId);
+      setPresupuesto(actualizado);
+    } catch (err) {
+      alert(extraerMensajeError(err, "No se pudo quitar el extra."));
     }
   }
 
@@ -193,21 +206,45 @@ export default function PresupuestoDetalle() {
                 <th>Unidad</th>
                 <th className="col-right">Precio unit.</th>
                 <th className="col-right">Subtotal</th>
+                <th></th>
               </tr>
             </thead>
             <tbody>
               {presupuesto.items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.descripcion}</td>
-                  <td className="num col-right">{Number(item.cantidad)}</td>
-                  <td className="cell-muted">{item.unidad}</td>
-                  <td className="num col-right">
-                    ${Number(item.precio_unitario_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                  <td className="num col-right">
-                    ${Number(item.subtotal_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </td>
-                </tr>
+                <Fragment key={item.id}>
+                  <tr>
+                    <td>{item.descripcion}</td>
+                    <td className="num col-right">{Number(item.cantidad)}</td>
+                    <td className="cell-muted">{item.unidad}</td>
+                    <td className="num col-right">
+                      ${Number(item.precio_unitario_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td className="num col-right">
+                      ${Number(item.subtotal_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                    <td>
+                      <button className="btn btn-sm" onClick={() => setModalExtra(item)}>
+                        ✓ Extra
+                      </button>
+                    </td>
+                  </tr>
+                  {item.extras.map((extra) => (
+                    <tr key={extra.id}>
+                      <td className="cell-muted" style={{ paddingLeft: 24 }}>+ {extra.descripcion}</td>
+                      <td></td>
+                      <td></td>
+                      <td></td>
+                      <td className="num col-right cell-muted">
+                        ${Number(extra.precio_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td>
+                        <button className="btn btn-ghost btn-sm" onClick={() => onQuitarExtra(item.id, extra.id)} aria-label="Quitar extra">
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </Fragment>
               ))}
             </tbody>
           </table>
@@ -300,7 +337,80 @@ export default function PresupuestoDetalle() {
           onElegir={onElegirImpuesto}
         />
       )}
+
+      {modalExtra && (
+        <ModalAgregarExtra
+          item={modalExtra}
+          onClose={() => setModalExtra(null)}
+          onAgregar={async (datos) => {
+            const actualizado = await agregarExtraItem(presupuesto.id, modalExtra.id, datos);
+            setPresupuesto(actualizado);
+            setModalExtra(null);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+function ModalAgregarExtra({ item, onClose, onAgregar }) {
+  const [descripcion, setDescripcion] = useState("");
+  const [precio, setPrecio] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setGuardando(true);
+    try {
+      await onAgregar({ descripcion, precio_pesos: Number(precio) });
+    } catch (err) {
+      setError(extraerMensajeError(err, "No se pudo agregar el extra."));
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <Modal
+      title={`Agregar extra a "${item.descripcion}"`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={onSubmit} disabled={guardando}>
+            {guardando ? "Agregando…" : "Agregar"}
+          </button>
+        </>
+      }
+    >
+      {error && <div className="alert alert-danger">{error}</div>}
+      <form onSubmit={onSubmit}>
+        <div className="field">
+          <label>Descripción del extra</label>
+          <input
+            className="input"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            placeholder="Ej: Flete, corte especial, etc."
+            required
+          />
+        </div>
+        <div className="field">
+          <label>Precio ($)</label>
+          <input
+            className="input num"
+            type="number"
+            step="any"
+            min="0"
+            value={precio}
+            onChange={(e) => setPrecio(e.target.value)}
+            required
+          />
+        </div>
+      </form>
+    </Modal>
   );
 }
 
