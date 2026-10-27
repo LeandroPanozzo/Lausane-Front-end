@@ -352,7 +352,7 @@ export default function ClienteDetalle() {
                           onAgregar={(cantidad, unidad) =>
                             confirmarYAgregar({
                               tipo: "TUBO",
-                              descripcion: `Tubo ${t.dimensiones}${conDescuento ? ` (desc. ${pct}%)` : ""}`,
+                              descripcion: `Tubo ${t.dimensiones}`,
                               cantidad,
                               unidad,
                               precio_unitario_pesos: Math.round(precioFinal * 100) / 100,
