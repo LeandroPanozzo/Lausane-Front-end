@@ -219,7 +219,7 @@ export default function MarkupsChapa() {
 
       <p style={{ color: "var(--text-muted)", fontSize: 13, marginBottom: 18, maxWidth: 640 }}>
         {esCatalogoCosto
-          ? `A diferencia de Laminado en Frío y Negra, cada espesor/ancho de ${catalogo.label.toLowerCase()} tiene su propio costo en U$S/kg (no un % sobre un precio base compartido).`
+          ? `A diferencia de Laminado en Frío y Laminado en Caliente, cada espesor/ancho de ${catalogo.label.toLowerCase()} tiene su propio costo en U$S/kg (no un % sobre un precio base compartido).`
           : "Esta tabla es la misma para todos los clientes — replica los porcentajes que en el Excel " +
             "original se repetían en la hoja de cada cliente (ej. \"base + 7%\" para espesor 16)."}
       </p>
@@ -259,7 +259,7 @@ export default function MarkupsChapa() {
               Laminado en Frío
             </div>
             <div className={`tab ${tab === "NEGRA" ? "active" : ""}`} onClick={() => setTab("NEGRA")}>
-              Negra
+              Laminado en Caliente
             </div>
             <div className={`tab ${tab === "GALVANIZADA" ? "active" : ""}`} onClick={() => setTab("GALVANIZADA")}>
               Galvanizada

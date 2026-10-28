@@ -66,7 +66,7 @@ export default function MarkupFormModal({ markup, onClose, onSaved }) {
           <label>Tipo de chapa</label>
           <select className="input" value={form.tipo} onChange={(e) => set("tipo", e.target.value)}>
             <option value="DD">Laminado en Frío</option>
-            <option value="NEGRA">Negra</option>
+            <option value="NEGRA">Laminado en Caliente</option>
           </select>
         </div>
         <div className="form-grid">

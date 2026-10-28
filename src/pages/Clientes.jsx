@@ -105,10 +105,10 @@ export default function Clientes() {
                   <tr>
                     <th>N°</th>
                     <th>Nombre</th>
-                    <th className="col-right">% Incr. DD</th>
-                    <th className="col-right">% Incr. Negra</th>
-                    <th className="col-right">% Desc. DD</th>
-                    <th className="col-right">% Desc. Negra</th>
+                    <th className="col-right">% Incr. Frío</th>
+                    <th className="col-right">% Incr. Caliente</th>
+                    <th className="col-right">% Desc. Frío</th>
+                    <th className="col-right">% Desc. Caliente</th>
                     <th className="col-right">% Desc. Galv.</th>
                     <th>Estado</th>
                     <th></th>

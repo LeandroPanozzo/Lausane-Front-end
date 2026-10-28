@@ -124,7 +124,7 @@ export default function Configuracion() {
                 {ok && <div className="alert alert-ok">{ok}</div>}
                 <div className="form-grid">
                   <div className="field">
-                    <label>Precio base DD (U$S/kg)</label>
+                    <label>Precio base Laminado en Frío (U$S/kg)</label>
                     <input
                       className="input num"
                       type="number"
@@ -135,7 +135,7 @@ export default function Configuracion() {
                     />
                   </div>
                   <div className="field">
-                    <label>Precio base Negra (U$S/kg)</label>
+                    <label>Precio base Laminado en Caliente (U$S/kg)</label>
                     <input
                       className="input num"
                       type="number"

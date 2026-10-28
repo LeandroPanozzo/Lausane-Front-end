@@ -129,7 +129,7 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
             />
           </div>
           <div className="field">
-            <label>% Incremento DD</label>
+            <label>% Incremento Laminado en Frío</label>
             <input
               className="input num"
               type="number"
@@ -141,7 +141,7 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
             <div className="hint">Ej: 8 significa 8%, no 0.08</div>
           </div>
           <div className="field">
-            <label>% Incremento Negra</label>
+            <label>% Incremento Laminado en Caliente</label>
             <input
               className="input num"
               type="number"
@@ -152,7 +152,7 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
             />
           </div>
           <div className="field">
-            <label>% Descuento DD (Laminado en Frío)</label>
+            <label>% Descuento Laminado en Frío</label>
             <input
               className="input num"
               type="number"
@@ -164,7 +164,7 @@ export default function ClienteFormModal({ cliente, onClose, onSaved }) {
             <div className="hint">Descuento propio de este cliente sobre el precio final. 0 = sin descuento.</div>
           </div>
           <div className="field">
-            <label>% Descuento Negra</label>
+            <label>% Descuento Laminado en Caliente</label>
             <input
               className="input num"
               type="number"

@@ -8,6 +8,8 @@ import { Loading } from "../components/Ui";
 import AgregarAlCarrito from "../components/AgregarAlCarrito";
 import { useCart } from "../context/CartContext";
 
+const ETIQUETA_TAB = { DD: "Laminado en Frío", NEGRA: "Laminado en Caliente" };
+
 export default function ClienteDetalle() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -115,13 +117,13 @@ export default function ClienteDetalle() {
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">% Incremento DD / Negra</div>
+          <div className="stat-label">% Incremento Laminado en Frío / Caliente</div>
           <div className="stat-value num">
             {Number(cliente.incremento_dd).toFixed(2)}% / {Number(cliente.incremento_negra).toFixed(2)}%
           </div>
         </div>
         <div className="stat-card">
-          <div className="stat-label">% Descuento DD / Negra</div>
+          <div className="stat-label">% Descuento Laminado en Frío / Caliente</div>
           <div className="stat-value num">
             {Number(cliente.descuento_dd).toFixed(2)}% / {Number(cliente.descuento_negra).toFixed(2)}%
           </div>
@@ -137,11 +139,11 @@ export default function ClienteDetalle() {
         {base && tab !== "TUBOS" && (
           <>
             <div className="stat-card">
-              <div className="stat-label">Base {tab} — U$S/kg</div>
+              <div className="stat-label">Base {ETIQUETA_TAB[tab] || tab} — U$S/kg</div>
               <div className="stat-value num">{Number(base.base_usd).toFixed(4)}</div>
             </div>
             <div className="stat-card">
-              <div className="stat-label">Base {tab} — $/kg</div>
+              <div className="stat-label">Base {ETIQUETA_TAB[tab] || tab} — $/kg</div>
               <div className="stat-value num">{Number(base.base_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
             </div>
           </>
@@ -155,7 +157,7 @@ export default function ClienteDetalle() {
         <div style={{ padding: "0 18px" }}>
           <div className="tabs">
             <div className={`tab ${tab === "DD" ? "active" : ""}`} onClick={() => setTab("DD")}>Laminado en Frío</div>
-            <div className={`tab ${tab === "NEGRA" ? "active" : ""}`} onClick={() => setTab("NEGRA")}>Negra</div>
+            <div className={`tab ${tab === "NEGRA" ? "active" : ""}`} onClick={() => setTab("NEGRA")}>Laminado en Caliente</div>
             <div className={`tab ${tab === "GALVANIZADA" ? "active" : ""}`} onClick={() => setTab("GALVANIZADA")}>Galvanizada</div>
             <div className={`tab ${tab === "GRUESA" ? "active" : ""}`} onClick={() => setTab("GRUESA")}>Gruesas</div>
             <div className={`tab ${tab === "TUBOS" ? "active" : ""}`} onClick={() => setTab("TUBOS")}>Tubos</div>
@@ -194,7 +196,7 @@ export default function ClienteDetalle() {
                           onAgregar={(cantidad, unidad) =>
                             confirmarYAgregar({
                               tipo: "CHAPA",
-                              descripcion: `Chapa ${tab === "DD" ? "DD" : "Negra"} · espesor ${f.espesor} · ancho ${f.ancho_mm}mm`,
+                              descripcion: `Chapa ${ETIQUETA_TAB[tab]} · espesor ${f.espesor} · ancho ${f.ancho_mm}mm`,
                               cantidad,
                               unidad,
                               precio_unitario_pesos: Number(f.precio_pesos),

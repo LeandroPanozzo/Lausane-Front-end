@@ -84,14 +84,14 @@ export default function Panel() {
               </div>
             </div>
             <div className="stat-card">
-              <div className="stat-label">Precio base DD (U$S/kg)</div>
+              <div className="stat-label">Precio base Laminado en Frío (U$S/kg)</div>
               <div className="stat-value num">{Number(stats.config.precio_base_dd).toFixed(3)}</div>
-              <div className="stat-sub">Laminado en Frío</div>
+              <div className="stat-sub">Chapa Laminado en Frío</div>
             </div>
             <div className="stat-card">
-              <div className="stat-label">Precio base Negra (U$S/kg)</div>
+              <div className="stat-label">Precio base Laminado en Caliente (U$S/kg)</div>
               <div className="stat-value num">{Number(stats.config.precio_base_negra).toFixed(3)}</div>
-              <div className="stat-sub">Chapa Negra</div>
+              <div className="stat-sub">Chapa Laminado en Caliente</div>
             </div>
           </div>
 
