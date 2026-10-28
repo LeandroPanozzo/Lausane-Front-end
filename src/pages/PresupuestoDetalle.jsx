@@ -11,6 +11,8 @@ import {
   elegirImpuestoPresupuesto,
   agregarExtraItem,
   quitarExtraItem,
+  agregarAjusteUnitarioItem,
+  quitarAjusteUnitarioItem,
 } from "../api/presupuestos";
 import { extraerMensajeError } from "../api/client";
 import { Loading } from "../components/Ui";
@@ -25,6 +27,7 @@ export default function PresupuestoDetalle() {
   const [modalImpuesto, setModalImpuesto] = useState(false);
   const [accionPendiente, setAccionPendiente] = useState(null);
   const [modalExtra, setModalExtra] = useState(null); // null | item
+  const [modalAjuste, setModalAjuste] = useState(null); // null | item
 
   const cargar = useCallback(async () => {
     try {
@@ -70,6 +73,16 @@ export default function PresupuestoDetalle() {
       setPresupuesto(actualizado);
     } catch (err) {
       alert(extraerMensajeError(err, "No se pudo quitar el extra."));
+    }
+  }
+
+  async function onQuitarAjuste(itemId, ajusteId) {
+    if (!window.confirm("¿Quitar este ajuste al precio unitario?")) return;
+    try {
+      const actualizado = await quitarAjusteUnitarioItem(presupuesto.id, itemId, ajusteId);
+      setPresupuesto(actualizado);
+    } catch (err) {
+      alert(extraerMensajeError(err, "No se pudo quitar el ajuste."));
     }
   }
 
@@ -217,7 +230,24 @@ export default function PresupuestoDetalle() {
                     <td className="num col-right">{Number(item.cantidad)}</td>
                     <td className="cell-muted">{item.unidad}</td>
                     <td className="num col-right">
-                      ${Number(item.precio_unitario_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
+                        {Number(item.ajustes_unitarios.length) > 0 && (
+                          <span style={{ textDecoration: "line-through", color: "var(--text-faint)", fontSize: 11 }}>
+                            ${Number(item.precio_unitario_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        )}
+                        <span>
+                          ${Number(item.precio_unitario_efectivo_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </span>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => setModalAjuste(item)}
+                          aria-label="Agregar al precio unitario"
+                          title="Agregar al precio unitario"
+                        >
+                          +
+                        </button>
+                      </div>
                     </td>
                     <td className="num col-right">
                       ${Number(item.subtotal_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -228,6 +258,22 @@ export default function PresupuestoDetalle() {
                       </button>
                     </td>
                   </tr>
+                  {item.ajustes_unitarios.map((ajuste) => (
+                    <tr key={`au-${ajuste.id}`}>
+                      <td className="cell-muted" style={{ paddingLeft: 24 }}>+ {ajuste.descripcion || "Ajuste"} (por unidad)</td>
+                      <td></td>
+                      <td></td>
+                      <td className="num col-right cell-muted">
+                        ${Number(ajuste.monto_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </td>
+                      <td></td>
+                      <td>
+                        <button className="btn btn-ghost btn-sm" onClick={() => onQuitarAjuste(item.id, ajuste.id)} aria-label="Quitar ajuste">
+                          ✕
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
                   {item.extras.map((extra) => (
                     <tr key={extra.id}>
                       <td className="cell-muted" style={{ paddingLeft: 24 }}>+ {extra.descripcion}</td>
@@ -349,6 +395,18 @@ export default function PresupuestoDetalle() {
           }}
         />
       )}
+
+      {modalAjuste && (
+        <ModalAgregarAjusteUnitario
+          item={modalAjuste}
+          onClose={() => setModalAjuste(null)}
+          onAgregar={async (datos) => {
+            const actualizado = await agregarAjusteUnitarioItem(presupuesto.id, modalAjuste.id, datos);
+            setPresupuesto(actualizado);
+            setModalAjuste(null);
+          }}
+        />
+      )}
     </>
   );
 }
@@ -406,6 +464,70 @@ function ModalAgregarExtra({ item, onClose, onAgregar }) {
             min="0"
             value={precio}
             onChange={(e) => setPrecio(e.target.value)}
+            required
+          />
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
+function ModalAgregarAjusteUnitario({ item, onClose, onAgregar }) {
+  const [descripcion, setDescripcion] = useState("");
+  const [monto, setMonto] = useState("");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    setGuardando(true);
+    try {
+      await onAgregar({ descripcion, monto_pesos: Number(monto) });
+    } catch (err) {
+      setError(extraerMensajeError(err, "No se pudo agregar el ajuste."));
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <Modal
+      title={`Agregar al precio unitario de "${item.descripcion}"`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={onSubmit} disabled={guardando}>
+            {guardando ? "Agregando…" : "Agregar"}
+          </button>
+        </>
+      }
+    >
+      {error && <div className="alert alert-danger">{error}</div>}
+      <p style={{ marginTop: 0, fontSize: 13 }} className="cell-muted">
+        Este monto se suma al precio unitario (${Number(item.precio_unitario_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) y se multiplica
+        por la cantidad ({Number(item.cantidad)}), a diferencia de un "Extra" que se suma una sola vez.
+      </p>
+      <form onSubmit={onSubmit}>
+        <div className="field">
+          <label>Descripción (opcional)</label>
+          <input
+            className="input"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            placeholder="Ej: Material especial, mano de obra extra, etc."
+          />
+        </div>
+        <div className="field">
+          <label>Monto por unidad ($)</label>
+          <input
+            className="input num"
+            type="number"
+            step="any"
+            min="0"
+            value={monto}
+            onChange={(e) => setMonto(e.target.value)}
             required
           />
         </div>

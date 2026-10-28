@@ -52,6 +52,21 @@ export async function quitarExtraItem(presupuestoId, itemId, extraId) {
   return res.data;
 }
 
+/** Agrega un ajuste al precio UNITARIO de un ítem (se multiplica por la cantidad). */
+export async function agregarAjusteUnitarioItem(presupuestoId, itemId, { descripcion, monto_pesos }) {
+  const res = await api.post(
+    `/presupuestos/${presupuestoId}/items/${itemId}/agregar-ajuste-unitario/`,
+    { descripcion, monto_pesos }
+  );
+  return res.data;
+}
+
+/** Quita un ajuste unitario ya cargado de un ítem. */
+export async function quitarAjusteUnitarioItem(presupuestoId, itemId, ajusteId) {
+  const res = await api.delete(`/presupuestos/${presupuestoId}/items/${itemId}/ajustes-unitarios/${ajusteId}/`);
+  return res.data;
+}
+
 /**
  * Descarga un archivo autenticado (el PDF/Excel del presupuesto) y dispara
  * la descarga en el navegador. No se puede usar un <a href> directo porque
