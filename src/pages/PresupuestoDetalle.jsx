@@ -9,8 +9,8 @@ import {
   marcarPresupuestoEnviado,
   enviarPresupuestoPorWhatsapp,
   elegirImpuestoPresupuesto,
-  agregarExtraItem,
-  quitarExtraItem,
+  agregarFleteItem,
+  quitarFleteItem,
   agregarAjusteUnitarioItem,
   quitarAjusteUnitarioItem,
 } from "../api/presupuestos";
@@ -26,7 +26,7 @@ export default function PresupuestoDetalle() {
   const [modalEmail, setModalEmail] = useState(false);
   const [modalImpuesto, setModalImpuesto] = useState(false);
   const [accionPendiente, setAccionPendiente] = useState(null);
-  const [modalExtra, setModalExtra] = useState(null); // null | item
+  const [modalFlete, setModalFlete] = useState(null); // null | item
   const [modalAjuste, setModalAjuste] = useState(null); // null | item
 
   const cargar = useCallback(async () => {
@@ -66,13 +66,13 @@ export default function PresupuestoDetalle() {
     }
   }
 
-  async function onQuitarExtra(itemId, extraId) {
-    if (!window.confirm("¿Quitar este extra?")) return;
+  async function onQuitarFlete(itemId, extraId) {
+    if (!window.confirm("¿Quitar este flete?")) return;
     try {
-      const actualizado = await quitarExtraItem(presupuesto.id, itemId, extraId);
+      const actualizado = await quitarFleteItem(presupuesto.id, itemId, extraId);
       setPresupuesto(actualizado);
     } catch (err) {
-      alert(extraerMensajeError(err, "No se pudo quitar el extra."));
+      alert(extraerMensajeError(err, "No se pudo quitar el flete."));
     }
   }
 
@@ -226,7 +226,21 @@ export default function PresupuestoDetalle() {
               {presupuesto.items.map((item) => (
                 <Fragment key={item.id}>
                   <tr>
-                    <td>{item.descripcion}</td>
+                    <td>
+                      {item.descripcion_con_ajustes || item.descripcion}
+                      {item.ajustes_unitarios.map((ajuste) => (
+                        <button
+                          key={ajuste.id}
+                          className="btn btn-ghost btn-sm"
+                          style={{ marginLeft: 6 }}
+                          onClick={() => onQuitarAjuste(item.id, ajuste.id)}
+                          aria-label={`Quitar ${ajuste.descripcion} del precio unitario`}
+                          title={`Quitar ${ajuste.descripcion}`}
+                        >
+                          ✕
+                        </button>
+                      ))}
+                    </td>
                     <td className="num col-right">{Number(item.cantidad)}</td>
                     <td className="cell-muted">{item.unidad}</td>
                     <td className="num col-right">
@@ -239,41 +253,27 @@ export default function PresupuestoDetalle() {
                         <span>
                           ${Number(item.precio_unitario_efectivo_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </span>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => setModalAjuste(item)}
-                          aria-label="Agregar al precio unitario"
-                          title="Agregar al precio unitario"
-                        >
-                          +
-                        </button>
+                        {item.tipo === "CHAPA" && (
+                          <button
+                            className="btn btn-ghost btn-sm"
+                            onClick={() => setModalAjuste(item)}
+                            aria-label="Agregar extra al precio unitario"
+                            title="Agregar extra al precio unitario"
+                          >
+                            Extra
+                          </button>
+                        )}
                       </div>
                     </td>
                     <td className="num col-right">
                       ${Number(item.subtotal_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </td>
                     <td>
-                      <button className="btn btn-sm" onClick={() => setModalExtra(item)}>
-                        ✓ Extra
+                      <button className="btn btn-sm" onClick={() => setModalFlete(item)}>
+                        Flete
                       </button>
                     </td>
                   </tr>
-                  {item.ajustes_unitarios.map((ajuste) => (
-                    <tr key={`au-${ajuste.id}`}>
-                      <td className="cell-muted" style={{ paddingLeft: 24 }}>+ {ajuste.descripcion || "Ajuste"} (por unidad)</td>
-                      <td></td>
-                      <td></td>
-                      <td className="num col-right cell-muted">
-                        ${Number(ajuste.monto_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                      </td>
-                      <td></td>
-                      <td>
-                        <button className="btn btn-ghost btn-sm" onClick={() => onQuitarAjuste(item.id, ajuste.id)} aria-label="Quitar ajuste">
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
                   {item.extras.map((extra) => (
                     <tr key={extra.id}>
                       <td className="cell-muted" style={{ paddingLeft: 24 }}>+ {extra.descripcion}</td>
@@ -284,7 +284,7 @@ export default function PresupuestoDetalle() {
                         ${Number(extra.precio_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                       </td>
                       <td>
-                        <button className="btn btn-ghost btn-sm" onClick={() => onQuitarExtra(item.id, extra.id)} aria-label="Quitar extra">
+                        <button className="btn btn-ghost btn-sm" onClick={() => onQuitarFlete(item.id, extra.id)} aria-label="Quitar flete">
                           ✕
                         </button>
                       </td>
@@ -384,14 +384,14 @@ export default function PresupuestoDetalle() {
         />
       )}
 
-      {modalExtra && (
-        <ModalAgregarExtra
-          item={modalExtra}
-          onClose={() => setModalExtra(null)}
+      {modalFlete && (
+        <ModalAgregarFlete
+          item={modalFlete}
+          onClose={() => setModalFlete(null)}
           onAgregar={async (datos) => {
-            const actualizado = await agregarExtraItem(presupuesto.id, modalExtra.id, datos);
+            const actualizado = await agregarFleteItem(presupuesto.id, modalFlete.id, datos.precio_pesos);
             setPresupuesto(actualizado);
-            setModalExtra(null);
+            setModalFlete(null);
           }}
         />
       )}
@@ -411,8 +411,7 @@ export default function PresupuestoDetalle() {
   );
 }
 
-function ModalAgregarExtra({ item, onClose, onAgregar }) {
-  const [descripcion, setDescripcion] = useState("");
+function ModalAgregarFlete({ item, onClose, onAgregar }) {
   const [precio, setPrecio] = useState("");
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState(null);
@@ -420,11 +419,15 @@ function ModalAgregarExtra({ item, onClose, onAgregar }) {
   async function onSubmit(e) {
     e.preventDefault();
     setError(null);
+    if (precio.trim() === "" || !Number.isFinite(Number(precio)) || Number(precio) < 0) {
+      setError("Ingresá un precio de flete válido.");
+      return;
+    }
     setGuardando(true);
     try {
-      await onAgregar({ descripcion, precio_pesos: Number(precio) });
+      await onAgregar({ precio_pesos: Number(precio) });
     } catch (err) {
-      setError(extraerMensajeError(err, "No se pudo agregar el extra."));
+      setError(extraerMensajeError(err, "No se pudo agregar el flete."));
     } finally {
       setGuardando(false);
     }
@@ -432,7 +435,7 @@ function ModalAgregarExtra({ item, onClose, onAgregar }) {
 
   return (
     <Modal
-      title={`Agregar extra a "${item.descripcion}"`}
+      title={`Agregar flete a "${item.descripcion}"`}
       onClose={onClose}
       footer={
         <>
@@ -446,17 +449,7 @@ function ModalAgregarExtra({ item, onClose, onAgregar }) {
       {error && <div className="alert alert-danger">{error}</div>}
       <form onSubmit={onSubmit}>
         <div className="field">
-          <label>Descripción del extra</label>
-          <input
-            className="input"
-            value={descripcion}
-            onChange={(e) => setDescripcion(e.target.value)}
-            placeholder="Ej: Flete, corte especial, etc."
-            required
-          />
-        </div>
-        <div className="field">
-          <label>Precio ($)</label>
+          <label>Flete ($)</label>
           <input
             className="input num"
             type="number"
@@ -481,6 +474,10 @@ function ModalAgregarAjusteUnitario({ item, onClose, onAgregar }) {
   async function onSubmit(e) {
     e.preventDefault();
     setError(null);
+    if (!descripcion || monto.trim() === "" || !Number.isFinite(Number(monto)) || Number(monto) < 0) {
+      setError("Elegí el tipo de extra e ingresá un monto válido.");
+      return;
+    }
     setGuardando(true);
     try {
       await onAgregar({ descripcion, monto_pesos: Number(monto) });
@@ -493,7 +490,7 @@ function ModalAgregarAjusteUnitario({ item, onClose, onAgregar }) {
 
   return (
     <Modal
-      title={`Agregar al precio unitario de "${item.descripcion}"`}
+      title={`Agregar extra al precio unitario de "${item.descripcion}"`}
       onClose={onClose}
       footer={
         <>
@@ -506,18 +503,21 @@ function ModalAgregarAjusteUnitario({ item, onClose, onAgregar }) {
     >
       {error && <div className="alert alert-danger">{error}</div>}
       <p style={{ marginTop: 0, fontSize: 13 }} className="cell-muted">
-        Este monto se suma al precio unitario (${Number(item.precio_unitario_pesos).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) y se multiplica
-        por la cantidad ({Number(item.cantidad)}), a diferencia de un "Extra" que se suma una sola vez.
+        El monto se suma al precio unitario y se multiplica por la cantidad ({Number(item.cantidad)}).
       </p>
       <form onSubmit={onSubmit}>
         <div className="field">
-          <label>Descripción (opcional)</label>
-          <input
+          <label>Tipo de extra</label>
+          <select
             className="input"
             value={descripcion}
             onChange={(e) => setDescripcion(e.target.value)}
-            placeholder="Ej: Material especial, mano de obra extra, etc."
-          />
+            required
+          >
+            <option value="">Seleccioná una opción</option>
+            <option value="Estampado">Estampado</option>
+            <option value="Corte a medida">Corte a medida</option>
+          </select>
         </div>
         <div className="field">
           <label>Monto por unidad ($)</label>

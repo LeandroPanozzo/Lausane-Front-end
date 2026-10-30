@@ -37,17 +37,17 @@ export async function elegirImpuestoPresupuesto(id, impuestoPct) {
   return res.data;
 }
 
-/** Agrega un extra (descripción + precio) a un ítem ya creado del presupuesto. */
-export async function agregarExtraItem(presupuestoId, itemId, { descripcion, precio_pesos }) {
+/** Agrega un flete a un ítem ya creado del presupuesto. */
+export async function agregarFleteItem(presupuestoId, itemId, precio_pesos) {
   const res = await api.post(
     `/presupuestos/${presupuestoId}/items/${itemId}/agregar-extra/`,
-    { descripcion, precio_pesos }
+    { precio_pesos }
   );
   return res.data;
 }
 
-/** Quita un extra ya cargado de un ítem. */
-export async function quitarExtraItem(presupuestoId, itemId, extraId) {
+/** Quita un flete ya cargado de un ítem. */
+export async function quitarFleteItem(presupuestoId, itemId, extraId) {
   const res = await api.delete(`/presupuestos/${presupuestoId}/items/${itemId}/extras/${extraId}/`);
   return res.data;
 }

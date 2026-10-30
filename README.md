@@ -77,6 +77,8 @@ src/
   vez.
 - **Presupuestos**: al generar el presupuesto desde el carrito, se crea en
   el backend con los precios congelados. Desde el detalle podés:
+  - Agregar estampado o corte a medida al precio unitario de las chapas y
+    sumar flete a cualquier ítem.
   - Ver el PDF con la identidad de Lausane
   - Descargarlo en PDF o Excel
   - Enviarlo por email (con un mensaje personalizable)
