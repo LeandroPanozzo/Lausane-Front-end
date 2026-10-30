@@ -1,20 +1,12 @@
 import { useState } from "react";
-
-// Longitudes estándar disponibles según el ancho de la chapa (mm). Lo que no
-// está acá (o "Otro…") permite cargar la longitud a mano igual.
-const LONGITUDES_POR_ANCHO = {
-  1000: [2000],
-  1220: [2440, 3000],
-  1245: [2440, 3000, 6000],
-  1500: [3000, 6000],
-};
+import { opcionesLongitud } from "../utils/longitudesChapa";
 
 export default function AgregarAlCarrito({ unidadDefault = "kg", anchoMm, onAgregar }) {
   const [cantidad, setCantidad] = useState("1");
   const [agregado, setAgregado] = useState(false);
 
   const mostrarLongitud = anchoMm != null;
-  const opciones = mostrarLongitud ? (LONGITUDES_POR_ANCHO[Number(anchoMm)] || []) : [];
+  const opciones = mostrarLongitud ? opcionesLongitud(anchoMm) : [];
   const [longitud, setLongitud] = useState(opciones.length ? String(opciones[0]) : "otro");
   const [longitudManual, setLongitudManual] = useState("");
 

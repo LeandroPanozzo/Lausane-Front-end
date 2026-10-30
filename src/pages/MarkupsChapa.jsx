@@ -10,6 +10,7 @@ import { Loading, EmptyState } from "../components/Ui";
 import MarkupFormModal from "../components/MarkupFormModal";
 import CatalogoCostoFormModal from "../components/CatalogoCostoFormModal";
 import CambiarPrecioMasivoModal from "../components/CambiarPrecioMasivoModal";
+import { opcionesLongitud } from "../utils/longitudesChapa";
 
 // Galvanizada y Gruesas comparten exactamente la misma lógica (costo propio
 // en U$S/kg por espesor/ancho + un % de incremento general editable, con
@@ -301,6 +302,7 @@ export default function MarkupsChapa() {
                 <tr>
                   <th>Espesor</th>
                   <th>Ancho (mm)</th>
+                  <th>Longitud (mm)</th>
                   <th className="col-right">Recargo</th>
                   <th></th>
                 </tr>
@@ -317,6 +319,9 @@ export default function MarkupsChapa() {
                       )}
                     </td>
                     <td className={`cell-muted ${m.activo ? "" : "texto-inactivo"}`}>{m.ancho_mm}</td>
+                    <td className="cell-muted">
+                      {opcionesLongitud(m.ancho_mm).join(", ") || "—"}
+                    </td>
                     <td className={`num col-right ${m.activo ? "" : "texto-inactivo"}`}>
                       {m.porcentaje !== null ? `+${(Number(m.porcentaje) * 100).toFixed(2)}%` : (
                         <span className="badge badge-warn">N/D</span>
@@ -351,6 +356,7 @@ export default function MarkupsChapa() {
                   {tab === "GRUESA" && modoSeleccionMasiva && <th></th>}
                   <th>Espesor</th>
                   <th>Ancho (mm)</th>
+                  <th>Longitud (mm)</th>
                   <th className="col-right">Costo U$S/kg</th>
                   <th>Incremento</th>
                   <th className="col-right">Venta U$S/kg</th>
@@ -381,6 +387,9 @@ export default function MarkupsChapa() {
                         )}
                       </td>
                       <td className={`cell-muted ${c.activo ? "" : "texto-inactivo"}`}>{c.ancho_mm}</td>
+                      <td className="cell-muted">
+                        {opcionesLongitud(c.ancho_mm).join(", ") || "—"}
+                      </td>
                       <td className="num col-right cell-muted">{Number(c.costo_usd_kg).toFixed(4)}</td>
                       <td>
                         {/* Recarga todo (no solo el item local): "Venta U$S/kg" y "Venta
