@@ -1,14 +1,19 @@
-import { useState } from "react";
-import { opcionesLongitud } from "../utils/longitudesChapa";
+import { useEffect, useState } from "react";
 
-export default function AgregarAlCarrito({ unidadDefault = "kg", anchoMm, onAgregar }) {
+export default function AgregarAlCarrito({ unidadDefault = "kg", longitudes, onAgregar }) {
   const [cantidad, setCantidad] = useState("1");
   const [agregado, setAgregado] = useState(false);
 
-  const mostrarLongitud = anchoMm != null;
-  const opciones = mostrarLongitud ? opcionesLongitud(anchoMm) : [];
+  const mostrarLongitud = longitudes != null;
+  const opciones = longitudes || [];
   const [longitud, setLongitud] = useState(opciones.length ? String(opciones[0]) : "otro");
   const [longitudManual, setLongitudManual] = useState("");
+
+  // Si las opciones llegan después (se cargan por API), seguí reflejando la
+  // primera disponible mientras el usuario no haya tocado el selector.
+  useEffect(() => {
+    if (opciones.length) setLongitud((actual) => (actual === "otro" ? actual : String(opciones[0])));
+  }, [longitudes?.join(",")]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleAgregar() {
     const valor = Number(cantidad);

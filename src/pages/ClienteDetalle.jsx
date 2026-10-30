@@ -4,6 +4,7 @@ import { obtenerCliente, obtenerPreciosCliente } from "../api/clientes";
 import { listaPreciosTubos } from "../api/tubos";
 import { listaPreciosGalvanizada } from "../api/galvanizada";
 import { listaPreciosGruesas } from "../api/gruesas";
+import { listarLongitudesChapa } from "../api/longitudesChapa";
 import { Loading } from "../components/Ui";
 import AgregarAlCarrito from "../components/AgregarAlCarrito";
 import { useCart } from "../context/CartContext";
@@ -20,6 +21,7 @@ export default function ClienteDetalle() {
   const [tubos, setTubos] = useState(null);
   const [galvanizada, setGalvanizada] = useState(null);
   const [gruesas, setGruesas] = useState(null);
+  const [longitudesPorAncho, setLongitudesPorAncho] = useState({});
   const [tab, setTab] = useState("DD");
   const [error, setError] = useState(null);
   const [actualizando, setActualizando] = useState(false);
@@ -32,18 +34,24 @@ export default function ClienteDetalle() {
       setError(null);
       if (forzarDolar) setActualizando(true);
       try {
-        const [c, p, t, g, gr] = await Promise.all([
+        const [c, p, t, g, gr, longitudes] = await Promise.all([
           obtenerCliente(id),
           obtenerPreciosCliente(id, { forzarDolar }),
           listaPreciosTubos({ forzarDolar }),
           listaPreciosGalvanizada({ forzarDolar, clienteId: id }),
           listaPreciosGruesas({ forzarDolar }),
+          listarLongitudesChapa(),
         ]);
         setCliente(c);
         setPrecios(p);
         setTubos(t);
         setGalvanizada(g);
         setGruesas(gr);
+        const mapa = {};
+        for (const l of longitudes) {
+          (mapa[l.ancho_mm] ||= []).push(l.longitud_mm);
+        }
+        setLongitudesPorAncho(mapa);
       } catch {
         setError("No se pudo cargar la lista de precios del cliente.");
       } finally {
@@ -193,14 +201,15 @@ export default function ClienteDetalle() {
                       {f.disponible && (
                         <AgregarAlCarrito
                           unidadDefault="kg"
-                          anchoMm={f.ancho_mm}
+                          longitudes={longitudesPorAncho[f.ancho_mm]}
                           onAgregar={(cantidad, unidad, longitudMm) =>
                             confirmarYAgregar({
                               tipo: "CHAPA",
-                              descripcion: `Chapa ${ETIQUETA_TAB[tab]} · espesor ${f.espesor} · ancho ${f.ancho_mm}mm${longitudMm ? ` · largo ${longitudMm}mm` : ""}`,
+                              descripcion: `Chapa ${ETIQUETA_TAB[tab]} · espesor ${f.espesor} · ancho ${f.ancho_mm}mm`,
                               cantidad,
                               unidad,
                               precio_unitario_pesos: Number(f.precio_pesos),
+                              longitud_mm: longitudMm,
                             })
                           }
                         />
@@ -237,14 +246,15 @@ export default function ClienteDetalle() {
                     <td style={{ minWidth: 190 }}>
                       <AgregarAlCarrito
                         unidadDefault="kg"
-                        anchoMm={c.ancho_mm}
+                        longitudes={longitudesPorAncho[c.ancho_mm]}
                         onAgregar={(cantidad, unidad, longitudMm) =>
                           confirmarYAgregar({
                             tipo: "CHAPA",
-                            descripcion: `Chapa Galvanizada · espesor ${c.espesor} · ancho ${c.ancho_mm}mm${longitudMm ? ` · largo ${longitudMm}mm` : ""}`,
+                            descripcion: `Chapa Galvanizada · espesor ${c.espesor} · ancho ${c.ancho_mm}mm`,
                             cantidad,
                             unidad,
                             precio_unitario_pesos: Number(c.precio_venta_pesos_kg),
+                            longitud_mm: longitudMm,
                           })
                         }
                       />
@@ -280,14 +290,15 @@ export default function ClienteDetalle() {
                     <td style={{ minWidth: 190 }}>
                       <AgregarAlCarrito
                         unidadDefault="kg"
-                        anchoMm={c.ancho_mm}
+                        longitudes={longitudesPorAncho[c.ancho_mm]}
                         onAgregar={(cantidad, unidad, longitudMm) =>
                           confirmarYAgregar({
                             tipo: "CHAPA",
-                            descripcion: `Chapa Gruesa · espesor ${c.espesor} · ancho ${c.ancho_mm}mm${longitudMm ? ` · largo ${longitudMm}mm` : ""}`,
+                            descripcion: `Chapa Gruesa · espesor ${c.espesor} · ancho ${c.ancho_mm}mm`,
                             cantidad,
                             unidad,
                             precio_unitario_pesos: Number(c.precio_venta_pesos_kg),
+                            longitud_mm: longitudMm,
                           })
                         }
                       />

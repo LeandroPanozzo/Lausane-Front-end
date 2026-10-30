@@ -217,6 +217,7 @@ export default function PresupuestoDetalle() {
                 <th>Descripción</th>
                 <th className="col-right">Cantidad</th>
                 <th>Unidad</th>
+                <th>Longitud</th>
                 <th className="col-right">Precio unit.</th>
                 <th className="col-right">Subtotal</th>
                 <th></th>
@@ -243,6 +244,7 @@ export default function PresupuestoDetalle() {
                     </td>
                     <td className="num col-right">{Number(item.cantidad)}</td>
                     <td className="cell-muted">{item.unidad}</td>
+                    <td className="cell-muted">{item.longitud_mm ? `${item.longitud_mm}mm` : "-"}</td>
                     <td className="num col-right">
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
                         {Number(item.ajustes_unitarios.length) > 0 && (
@@ -277,6 +279,7 @@ export default function PresupuestoDetalle() {
                   {item.extras.map((extra) => (
                     <tr key={extra.id}>
                       <td className="cell-muted" style={{ paddingLeft: 24 }}>+ {extra.descripcion}</td>
+                      <td></td>
                       <td></td>
                       <td></td>
                       <td></td>

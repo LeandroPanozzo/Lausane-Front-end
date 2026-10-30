@@ -2,6 +2,7 @@ import { useState } from "react";
 import Modal from "./Modal";
 import { crearMarkup, actualizarMarkup } from "../api/config";
 import { extraerMensajeError } from "../api/client";
+import GestionLongitudesChapa from "./GestionLongitudesChapa";
 
 const VACIO = { tipo: "DD", espesor: "", ancho_mm: "", porcentaje: "", orden: 0, activo: true };
 
@@ -107,6 +108,9 @@ export default function MarkupFormModal({ markup, onClose, onSaved }) {
           <input type="checkbox" checked={form.activo} onChange={(e) => set("activo", e.target.checked)} />
           Recargo activo (visible en la lista de precios del cliente)
         </label>
+        <div style={{ marginTop: 16 }}>
+          <GestionLongitudesChapa anchoMm={form.ancho_mm} />
+        </div>
       </form>
     </Modal>
   );

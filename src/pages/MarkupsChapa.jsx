@@ -10,7 +10,7 @@ import { Loading, EmptyState } from "../components/Ui";
 import MarkupFormModal from "../components/MarkupFormModal";
 import CatalogoCostoFormModal from "../components/CatalogoCostoFormModal";
 import CambiarPrecioMasivoModal from "../components/CambiarPrecioMasivoModal";
-import { opcionesLongitud } from "../utils/longitudesChapa";
+import { listarLongitudesChapa } from "../api/longitudesChapa";
 
 // Galvanizada y Gruesas comparten exactamente la misma lógica (costo propio
 // en U$S/kg por espesor/ancho + un % de incremento general editable, con
@@ -80,6 +80,20 @@ export default function MarkupsChapa() {
   const [modoSeleccionMasiva, setModoSeleccionMasiva] = useState(false);
   const [seleccionados, setSeleccionados] = useState(() => new Set());
   const [modalMasivo, setModalMasivo] = useState(false);
+  const [longitudesPorAncho, setLongitudesPorAncho] = useState({});
+
+  const cargarLongitudes = useCallback(async () => {
+    const longitudes = await listarLongitudesChapa();
+    const mapa = {};
+    for (const l of longitudes) {
+      (mapa[l.ancho_mm] ||= []).push(l.longitud_mm);
+    }
+    setLongitudesPorAncho(mapa);
+  }, []);
+
+  useEffect(() => {
+    cargarLongitudes();
+  }, [cargarLongitudes]);
 
   const catalogo = CATALOGOS_COSTO[tab];
   const esCatalogoCosto = Boolean(catalogo);
@@ -320,7 +334,7 @@ export default function MarkupsChapa() {
                     </td>
                     <td className={`cell-muted ${m.activo ? "" : "texto-inactivo"}`}>{m.ancho_mm}</td>
                     <td className="cell-muted">
-                      {opcionesLongitud(m.ancho_mm).join(", ") || "—"}
+                      {(longitudesPorAncho[m.ancho_mm] || []).join(", ") || "—"}
                     </td>
                     <td className={`num col-right ${m.activo ? "" : "texto-inactivo"}`}>
                       {m.porcentaje !== null ? `+${(Number(m.porcentaje) * 100).toFixed(2)}%` : (
@@ -388,7 +402,7 @@ export default function MarkupsChapa() {
                       </td>
                       <td className={`cell-muted ${c.activo ? "" : "texto-inactivo"}`}>{c.ancho_mm}</td>
                       <td className="cell-muted">
-                        {opcionesLongitud(c.ancho_mm).join(", ") || "—"}
+                        {(longitudesPorAncho[c.ancho_mm] || []).join(", ") || "—"}
                       </td>
                       <td className="num col-right cell-muted">{Number(c.costo_usd_kg).toFixed(4)}</td>
                       <td>

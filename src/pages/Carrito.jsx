@@ -53,12 +53,13 @@ export default function Carrito() {
         cliente: carrito.cliente.id,
         cotizacion_dolar: cotizacion.venta,
         notas,
-        items: carrito.items.map(({ tipo, descripcion, cantidad, unidad, precio_unitario_pesos }) => ({
+        items: carrito.items.map(({ tipo, descripcion, cantidad, unidad, precio_unitario_pesos, longitud_mm }) => ({
           tipo,
           descripcion,
           cantidad,
           unidad,
           precio_unitario_pesos,
+          ...(longitud_mm ? { longitud_mm } : {}),
         })),
       };
       const presupuesto = await crearPresupuesto(payload);

@@ -3,6 +3,7 @@ import Modal from "./Modal";
 import { crearGalvanizada, actualizarGalvanizada } from "../api/galvanizada";
 import { crearGruesa, actualizarGruesa } from "../api/gruesas";
 import { extraerMensajeError } from "../api/client";
+import GestionLongitudesChapa from "./GestionLongitudesChapa";
 
 const VACIO = { espesor: "", ancho_mm: "", costo_usd_kg: "", activo: true, usar_incremento_general: true };
 
@@ -121,6 +122,9 @@ export default function CatalogoCostoFormModal({ tipo, chapa, onClose, onSaved }
             Destildado: esta chapa se vende directo al costo, sin el % que se configura acá arriba.
           </div>
         )}
+        <div style={{ marginTop: 16 }}>
+          <GestionLongitudesChapa anchoMm={form.ancho_mm} />
+        </div>
       </form>
     </Modal>
   );
