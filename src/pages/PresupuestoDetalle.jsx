@@ -13,10 +13,18 @@ import {
   quitarFleteItem,
   agregarAjusteUnitarioItem,
   quitarAjusteUnitarioItem,
+  asignarLongitudItem,
 } from "../api/presupuestos";
+import { listarLongitudesChapa } from "../api/longitudesChapa";
 import { extraerMensajeError } from "../api/client";
 import { Loading } from "../components/Ui";
 import Modal from "../components/Modal";
+
+/** La descripción de un ítem de chapa tiene el formato "... · ancho 1220mm". */
+function extraerAnchoMm(descripcion) {
+  const m = /ancho (\d+(?:\.\d+)?)mm/i.exec(descripcion || "");
+  return m ? m[1] : null;
+}
 
 export default function PresupuestoDetalle() {
   const { id } = useParams();
@@ -28,6 +36,7 @@ export default function PresupuestoDetalle() {
   const [accionPendiente, setAccionPendiente] = useState(null);
   const [modalFlete, setModalFlete] = useState(null); // null | item
   const [modalAjuste, setModalAjuste] = useState(null); // null | item
+  const [modalLongitud, setModalLongitud] = useState(null); // null | item
 
   const cargar = useCallback(async () => {
     try {
@@ -244,7 +253,20 @@ export default function PresupuestoDetalle() {
                     </td>
                     <td className="num col-right">{Number(item.cantidad)}</td>
                     <td className="cell-muted">{item.unidad}</td>
-                    <td className="cell-muted">{item.longitud_mm ? `${item.longitud_mm}mm` : "-"}</td>
+                    <td className="cell-muted">
+                      {item.longitud_mm ? `${item.longitud_mm}mm` : "-"}
+                      {item.tipo === "CHAPA" && (
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          style={{ marginLeft: 6 }}
+                          onClick={() => setModalLongitud(item)}
+                          aria-label={item.longitud_mm ? "Cambiar longitud" : "Elegir longitud"}
+                          title={item.longitud_mm ? "Cambiar longitud" : "Elegir longitud"}
+                        >
+                          {item.longitud_mm ? "✎" : "Elegir"}
+                        </button>
+                      )}
+                    </td>
                     <td className="num col-right">
                       <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 6 }}>
                         {Number(item.ajustes_unitarios.length) > 0 && (
@@ -410,6 +432,18 @@ export default function PresupuestoDetalle() {
           }}
         />
       )}
+
+      {modalLongitud && (
+        <ModalAsignarLongitud
+          item={modalLongitud}
+          onClose={() => setModalLongitud(null)}
+          onAsignar={async (longitudMm) => {
+            const actualizado = await asignarLongitudItem(presupuesto.id, modalLongitud.id, longitudMm);
+            setPresupuesto(actualizado);
+            setModalLongitud(null);
+          }}
+        />
+      )}
     </>
   );
 }
@@ -535,6 +569,96 @@ function ModalAgregarAjusteUnitario({ item, onClose, onAgregar }) {
           />
         </div>
       </form>
+    </Modal>
+  );
+}
+
+function ModalAsignarLongitud({ item, onClose, onAsignar }) {
+  const anchoMm = extraerAnchoMm(item.descripcion);
+  const [opciones, setOpciones] = useState([]);
+  const [cargandoOpciones, setCargandoOpciones] = useState(true);
+  const [longitud, setLongitud] = useState(item.longitud_mm ? String(item.longitud_mm) : "otro");
+  const [longitudManual, setLongitudManual] = useState(item.longitud_mm ? String(item.longitud_mm) : "");
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (!anchoMm) {
+      setCargandoOpciones(false);
+      return;
+    }
+    listarLongitudesChapa(anchoMm)
+      .then((lista) => {
+        const valores = lista.map((l) => l.longitud_mm);
+        setOpciones(valores);
+        if (item.longitud_mm == null && valores.length) {
+          setLongitud(String(valores[0]));
+        }
+      })
+      .finally(() => setCargandoOpciones(false));
+  }, [anchoMm]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function onSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    const valor = longitud === "otro" ? Number(longitudManual) : Number(longitud);
+    if (!valor || valor <= 0) {
+      setError("Ingresá una longitud válida.");
+      return;
+    }
+    setGuardando(true);
+    try {
+      await onAsignar(valor);
+    } catch (err) {
+      setError(extraerMensajeError(err, "No se pudo guardar la longitud."));
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  return (
+    <Modal
+      title={`Longitud de "${item.descripcion}"`}
+      onClose={onClose}
+      footer={
+        <>
+          <button className="btn btn-ghost" onClick={onClose}>Cancelar</button>
+          <button className="btn btn-primary" onClick={onSubmit} disabled={guardando}>
+            {guardando ? "Guardando…" : "Guardar"}
+          </button>
+        </>
+      }
+    >
+      {error && <div className="alert alert-danger">{error}</div>}
+      {cargandoOpciones ? (
+        <Loading label="Buscando longitudes disponibles…" />
+      ) : (
+        <form onSubmit={onSubmit}>
+          <div className="field">
+            <label>Longitud</label>
+            <select className="input" value={longitud} onChange={(e) => setLongitud(e.target.value)}>
+              {opciones.map((mm) => (
+                <option key={mm} value={mm}>{mm}mm</option>
+              ))}
+              <option value="otro">Otro…</option>
+            </select>
+          </div>
+          {longitud === "otro" && (
+            <div className="field">
+              <label>Longitud manual (mm)</label>
+              <input
+                className="input num"
+                type="number"
+                step="any"
+                min="1"
+                value={longitudManual}
+                onChange={(e) => setLongitudManual(e.target.value)}
+                required
+              />
+            </div>
+          )}
+        </form>
+      )}
     </Modal>
   );
 }

@@ -67,6 +67,15 @@ export async function quitarAjusteUnitarioItem(presupuestoId, itemId, ajusteId) 
   return res.data;
 }
 
+/** Asigna (o cambia) la longitud de un ítem de chapa, incluso en presupuestos ya armados. */
+export async function asignarLongitudItem(presupuestoId, itemId, longitudMm) {
+  const res = await api.post(
+    `/presupuestos/${presupuestoId}/items/${itemId}/longitud/`,
+    { longitud_mm: longitudMm }
+  );
+  return res.data;
+}
+
 /**
  * Descarga un archivo autenticado (el PDF/Excel del presupuesto) y dispara
  * la descarga en el navegador. No se puede usar un <a href> directo porque
