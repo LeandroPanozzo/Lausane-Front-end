@@ -193,10 +193,11 @@ export default function ClienteDetalle() {
                       {f.disponible && (
                         <AgregarAlCarrito
                           unidadDefault="kg"
-                          onAgregar={(cantidad, unidad) =>
+                          anchoMm={f.ancho_mm}
+                          onAgregar={(cantidad, unidad, longitudMm) =>
                             confirmarYAgregar({
                               tipo: "CHAPA",
-                              descripcion: `Chapa ${ETIQUETA_TAB[tab]} · espesor ${f.espesor} · ancho ${f.ancho_mm}mm`,
+                              descripcion: `Chapa ${ETIQUETA_TAB[tab]} · espesor ${f.espesor} · ancho ${f.ancho_mm}mm${longitudMm ? ` · largo ${longitudMm}mm` : ""}`,
                               cantidad,
                               unidad,
                               precio_unitario_pesos: Number(f.precio_pesos),
@@ -236,10 +237,11 @@ export default function ClienteDetalle() {
                     <td style={{ minWidth: 190 }}>
                       <AgregarAlCarrito
                         unidadDefault="kg"
-                        onAgregar={(cantidad, unidad) =>
+                        anchoMm={c.ancho_mm}
+                        onAgregar={(cantidad, unidad, longitudMm) =>
                           confirmarYAgregar({
                             tipo: "CHAPA",
-                            descripcion: `Chapa Galvanizada · espesor ${c.espesor} · ancho ${c.ancho_mm}mm`,
+                            descripcion: `Chapa Galvanizada · espesor ${c.espesor} · ancho ${c.ancho_mm}mm${longitudMm ? ` · largo ${longitudMm}mm` : ""}`,
                             cantidad,
                             unidad,
                             precio_unitario_pesos: Number(c.precio_venta_pesos_kg),
@@ -278,10 +280,11 @@ export default function ClienteDetalle() {
                     <td style={{ minWidth: 190 }}>
                       <AgregarAlCarrito
                         unidadDefault="kg"
-                        onAgregar={(cantidad, unidad) =>
+                        anchoMm={c.ancho_mm}
+                        onAgregar={(cantidad, unidad, longitudMm) =>
                           confirmarYAgregar({
                             tipo: "CHAPA",
-                            descripcion: `Chapa Gruesa · espesor ${c.espesor} · ancho ${c.ancho_mm}mm`,
+                            descripcion: `Chapa Gruesa · espesor ${c.espesor} · ancho ${c.ancho_mm}mm${longitudMm ? ` · largo ${longitudMm}mm` : ""}`,
                             cantidad,
                             unidad,
                             precio_unitario_pesos: Number(c.precio_venta_pesos_kg),

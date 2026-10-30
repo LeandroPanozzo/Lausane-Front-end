@@ -490,8 +490,13 @@ table.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .cart-line .cart-line-desc .desc-sub { font-size: 12px; color: var(--text-muted); }
 .qty-input { width: 90px; }
 
+.add-to-cart-col { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
 .add-to-cart-row { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
 .add-to-cart-row .input { width: 80px; text-align: right; }
+.add-to-cart-longitud { display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
+.add-to-cart-longitud .input-sm { height: 30px; font-size: 12.5px; padding: 2px 8px; }
+.add-to-cart-longitud select.input-sm { width: 92px; }
+.add-to-cart-longitud input.input-sm { width: 70px; text-align: right; }
 
 .total-banner {
   display: flex; align-items: center; justify-content: space-between;
