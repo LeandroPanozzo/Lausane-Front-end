@@ -37,6 +37,7 @@ export default function PresupuestoDetalle() {
   const [modalFlete, setModalFlete] = useState(null); // null | item
   const [modalAjuste, setModalAjuste] = useState(null); // null | item
   const [modalLongitud, setModalLongitud] = useState(null); // null | item
+  const [modalNotasCliente, setModalNotasCliente] = useState(false);
 
   const cargar = useCallback(async () => {
     try {
@@ -195,7 +196,16 @@ export default function PresupuestoDetalle() {
         <div className="stat-row" style={{ marginBottom: 0 }}>
           <div className="stat-card">
             <div className="stat-label">Cliente</div>
-            <div className="stat-value" style={{ fontSize: 16 }}>{presupuesto.cliente_detalle.nombre}</div>
+            <div className="stat-value" style={{ fontSize: 16, display: "flex", alignItems: "center", gap: 6 }}>
+              {presupuesto.cliente_detalle.nombre}
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => setModalNotasCliente(true)}
+                title="Ver notas del cliente"
+              >
+                Notas
+              </button>
+            </div>
             <div className="stat-sub">N° {presupuesto.cliente_detalle.numero}</div>
           </div>
           <div className="stat-card">
@@ -431,6 +441,16 @@ export default function PresupuestoDetalle() {
             setModalAjuste(null);
           }}
         />
+      )}
+
+      {modalNotasCliente && (
+        <Modal title={`Notas de ${presupuesto.cliente_detalle.nombre}`} onClose={() => setModalNotasCliente(false)}>
+          {presupuesto.cliente_detalle.notas ? (
+            <p style={{ margin: 0, whiteSpace: "pre-wrap" }}>{presupuesto.cliente_detalle.notas}</p>
+          ) : (
+            <p className="cell-muted" style={{ margin: 0 }}>Este cliente no tiene notas cargadas.</p>
+          )}
+        </Modal>
       )}
 
       {modalLongitud && (
