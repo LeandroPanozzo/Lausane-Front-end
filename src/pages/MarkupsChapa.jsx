@@ -318,6 +318,7 @@ export default function MarkupsChapa() {
                   <th>Ancho (mm)</th>
                   <th>Longitud (mm)</th>
                   <th className="col-right">Recargo</th>
+                  <th className="col-right">Precio de venta</th>
                   <th></th>
                 </tr>
               </thead>
@@ -339,6 +340,17 @@ export default function MarkupsChapa() {
                     <td className={`num col-right ${m.activo ? "" : "texto-inactivo"}`}>
                       {m.porcentaje !== null ? `+${(Number(m.porcentaje) * 100).toFixed(2)}%` : (
                         <span className="badge badge-warn">N/D</span>
+                      )}
+                    </td>
+                    <td className="num col-right">
+                      {m.precio_venta_manual != null ? (
+                        <>
+                          {m.precio_venta_moneda === "USD" ? "US$" : "$"}
+                          {Number(m.precio_venta_manual).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
+                          <span className="badge badge-ok" style={{ marginLeft: 6 }}>Manual</span>
+                        </>
+                      ) : (
+                        <span className="cell-muted">Automático</span>
                       )}
                     </td>
                     <td>
@@ -419,6 +431,11 @@ export default function MarkupsChapa() {
                               maximumFractionDigits: 2,
                             })
                           : "—"}
+                        {p?.precio_venta_manual != null && (
+                          <span className="badge badge-ok" style={{ marginLeft: 6 }} title="Precio de venta cargado a mano">
+                            Manual
+                          </span>
+                        )}
                       </td>
                       <td>
                         <div className="cell-actions">
