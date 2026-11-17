@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { listarMarkups, eliminarMarkup, actualizarConfiguracion } from "../api/config";
+import { listarMarkups, eliminarMarkup, actualizarConfiguracion, listaPreciosMarkups } from "../api/config";
 import {
   listarGalvanizada, actualizarGalvanizada, eliminarGalvanizada, listaPreciosGalvanizada,
 } from "../api/galvanizada";
@@ -113,8 +113,13 @@ export default function MarkupsChapa() {
         });
         setPreciosPorClave(mapa);
       } else {
-        const data = await listarMarkups({ tipo: tab });
+        const [data, precios] = await Promise.all([listarMarkups({ tipo: tab }), listaPreciosMarkups(tab)]);
         setItems(data.results ?? data);
+        const mapa = {};
+        precios.markups.forEach((m) => {
+          mapa[`${m.espesor}·${m.ancho_mm}`] = m;
+        });
+        setPreciosPorClave(mapa);
       }
     } catch {
       setError("No se pudo cargar la tabla de recargos.");
@@ -323,52 +328,63 @@ export default function MarkupsChapa() {
                 </tr>
               </thead>
               <tbody>
-                {items.map((m) => (
-                  <tr key={m.id}>
-                    <td>
-                      <span className={m.activo ? "" : "texto-inactivo"}>{m.espesor}</span>
-                      {!m.activo && (
-                        <span className="badge badge-danger" style={{ marginLeft: 8 }}>
-                          Inactivo
-                        </span>
-                      )}
-                    </td>
-                    <td className={`cell-muted ${m.activo ? "" : "texto-inactivo"}`}>{m.ancho_mm}</td>
-                    <td className="cell-muted">
-                      {(longitudesPorAncho[m.ancho_mm] || []).join(", ") || "—"}
-                    </td>
-                    <td className={`num col-right ${m.activo ? "" : "texto-inactivo"}`}>
-                      {m.porcentaje !== null ? `+${(Number(m.porcentaje) * 100).toFixed(2)}%` : (
-                        <span className="badge badge-warn">N/D</span>
-                      )}
-                    </td>
-                    <td className="num col-right">
-                      {m.precio_venta_manual != null ? (
-                        <>
-                          {m.precio_venta_moneda === "USD" ? "US$" : "$"}
-                          {Number(m.precio_venta_manual).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 4 })}
-                          <span className="badge badge-ok" style={{ marginLeft: 6 }}>Manual</span>
-                        </>
-                      ) : (
-                        <span className="cell-muted">Automático</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="cell-actions">
-                        <button className="btn btn-sm" onClick={() => setModal(m)}>
-                          Editar
-                        </button>
-                        <button
-                          className="btn btn-sm btn-danger"
-                          onClick={() => onEliminar(m)}
-                          disabled={borrando === m.id}
-                        >
-                          {borrando === m.id ? "…" : "Eliminar"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {items.map((m) => {
+                  const p = preciosPorClave[`${m.espesor}·${m.ancho_mm}`];
+                  return (
+                    <tr key={m.id}>
+                      <td>
+                        <span className={m.activo ? "" : "texto-inactivo"}>{m.espesor}</span>
+                        {!m.activo && (
+                          <span className="badge badge-danger" style={{ marginLeft: 8 }}>
+                            Inactivo
+                          </span>
+                        )}
+                      </td>
+                      <td className={`cell-muted ${m.activo ? "" : "texto-inactivo"}`}>{m.ancho_mm}</td>
+                      <td className="cell-muted">
+                        {(longitudesPorAncho[m.ancho_mm] || []).join(", ") || "—"}
+                      </td>
+                      <td className={`num col-right ${m.activo ? "" : "texto-inactivo"}`}>
+                        {m.porcentaje !== null ? `+${(Number(m.porcentaje) * 100).toFixed(2)}%` : (
+                          <span className="badge badge-warn">N/D</span>
+                        )}
+                      </td>
+                      <td className="num col-right">
+                        {p && p.disponible ? (
+                          <>
+                            {Number(p.precio_venta_pesos_kg).toLocaleString("es-AR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                            {p.precio_venta_manual != null ? (
+                              <span className="badge badge-ok" style={{ marginLeft: 6 }} title="Precio de venta cargado a mano">
+                                Manual
+                              </span>
+                            ) : (
+                              <span className="cell-muted" style={{ marginLeft: 6 }}>Automático</span>
+                            )}
+                          </>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td>
+                        <div className="cell-actions">
+                          <button className="btn btn-sm" onClick={() => setModal(m)}>
+                            Editar
+                          </button>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => onEliminar(m)}
+                            disabled={borrando === m.id}
+                          >
+                            {borrando === m.id ? "…" : "Eliminar"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -431,10 +447,14 @@ export default function MarkupsChapa() {
                               maximumFractionDigits: 2,
                             })
                           : "—"}
-                        {p?.precio_venta_manual != null && (
-                          <span className="badge badge-ok" style={{ marginLeft: 6 }} title="Precio de venta cargado a mano">
-                            Manual
-                          </span>
+                        {p && (
+                          p.precio_venta_manual != null ? (
+                            <span className="badge badge-ok" style={{ marginLeft: 6 }} title="Precio de venta cargado a mano">
+                              Manual
+                            </span>
+                          ) : (
+                            <span className="cell-muted" style={{ marginLeft: 6 }}>Automático</span>
+                          )
                         )}
                       </td>
                       <td>

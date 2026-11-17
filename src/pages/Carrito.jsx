@@ -39,7 +39,16 @@ export default function Carrito() {
     );
   }
 
-  const total = carrito.items.reduce((acc, i) => acc + Number(i.cantidad) * Number(i.precio_unitario_pesos), 0);
+  // Redondeamos cada ítem a centavos ANTES de sumar — igual que el backend
+  // (PresupuestoItem.subtotal_pesos) — así el total que se ve acá coincide
+  // con el que va a quedar guardado en el presupuesto. Sumar los valores sin
+  // redondear y redondear recién el total final puede diferir en unos
+  // centavos (o más, con varios ítems de peso fraccionario) del total real.
+  function subtotalItem(i) {
+    return Math.round(Number(i.cantidad) * Number(i.precio_unitario_pesos) * 100) / 100;
+  }
+
+  const total = carrito.items.reduce((acc, i) => acc + subtotalItem(i), 0);
 
   async function onGenerarPresupuesto() {
     if (!cotizacion) {
@@ -105,7 +114,7 @@ export default function Carrito() {
                 onChange={(e) => actualizarCantidad(item.id, e.target.value)}
               />
               <div className="num" style={{ minWidth: 110, textAlign: "right", fontWeight: 600 }}>
-                ${(Number(item.cantidad) * Number(item.precio_unitario_pesos)).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ${subtotalItem(item).toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </div>
               <button className="btn btn-ghost btn-sm" onClick={() => quitarItem(item.id)} aria-label="Quitar">
                 ✕

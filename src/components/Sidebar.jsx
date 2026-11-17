@@ -6,8 +6,9 @@ const NAV_ITEMS = [
   { to: "/app/clientes", label: "Clientes", icon: "02" },
   { to: "/app/tubos", label: "Tubos", icon: "03" },
   { to: "/app/markups-chapa", label: "Chapas", icon: "04" },
-  { to: "/app/presupuestos", label: "Presupuestos", icon: "05" },
-  { to: "/app/configuracion", label: "Precios Base", icon: "06" },
+  { to: "/app/hierros", label: "Hierros", icon: "05" },
+  { to: "/app/presupuestos", label: "Presupuestos", icon: "06" },
+  { to: "/app/configuracion", label: "Precios Base", icon: "07" },
 ];
 
 export default function Sidebar({ open, onNavigate }) {

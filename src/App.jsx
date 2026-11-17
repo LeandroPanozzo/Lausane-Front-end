@@ -20,6 +20,7 @@ const Clientes = lazy(() => import("./pages/Clientes"));
 const ClienteDetalle = lazy(() => import("./pages/ClienteDetalle"));
 const Tubos = lazy(() => import("./pages/Tubos"));
 const MarkupsChapa = lazy(() => import("./pages/MarkupsChapa"));
+const Hierros = lazy(() => import("./pages/Hierros"));
 const Configuracion = lazy(() => import("./pages/Configuracion"));
 const Carrito = lazy(() => import("./pages/Carrito"));
 const Presupuestos = lazy(() => import("./pages/Presupuestos"));
@@ -76,6 +77,7 @@ export default function App() {
                   <Route path="clientes/:id" element={<ClienteDetalle />} />
                   <Route path="tubos" element={<Tubos />} />
                   <Route path="markups-chapa" element={<MarkupsChapa />} />
+                  <Route path="hierros" element={<Hierros />} />
                   <Route path="configuracion" element={<Configuracion />} />
                   <Route path="carrito" element={<Carrito />} />
                   <Route path="presupuestos" element={<Presupuestos />} />

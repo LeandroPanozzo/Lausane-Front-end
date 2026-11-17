@@ -4,10 +4,12 @@ import { obtenerCliente, obtenerPreciosCliente } from "../api/clientes";
 import { listaPreciosTubos } from "../api/tubos";
 import { listaPreciosGalvanizada } from "../api/galvanizada";
 import { listaPreciosGruesas } from "../api/gruesas";
+import { listaPreciosHierros } from "../api/hierros";
 import { listarLongitudesChapa } from "../api/longitudesChapa";
 import { Loading } from "../components/Ui";
 import AgregarAlCarrito from "../components/AgregarAlCarrito";
 import { useCart } from "../context/CartContext";
+import { TIPOS_HIERRO } from "../constants/hierros";
 
 const ETIQUETA_TAB = { DD: "Laminado en Frío", NEGRA: "Laminado en Caliente" };
 
@@ -21,25 +23,32 @@ export default function ClienteDetalle() {
   const [tubos, setTubos] = useState(null);
   const [galvanizada, setGalvanizada] = useState(null);
   const [gruesas, setGruesas] = useState(null);
+  const [hierros, setHierros] = useState(null);
   const [longitudesPorAncho, setLongitudesPorAncho] = useState({});
   const [tab, setTab] = useState("DD");
+  const [tabHierro, setTabHierro] = useState(TIPOS_HIERRO[0].tipo);
   const [error, setError] = useState(null);
   const [actualizando, setActualizando] = useState(false);
-  // Descuento de tubos para ESTE cliente/carrito: arranca en el default del
-  // catálogo, pero se puede pisar acá sin afectar ese default (no se guarda).
+  // Descuento de tubos/hierros para ESTE cliente/carrito: arranca en el
+  // default del catálogo (item.descuento_pct/descuento_habilitado), pero se
+  // puede pisar acá sin afectar ese default (no se guarda).
   const [descuentosTubo, setDescuentosTubo] = useState({});
+  const [descuentosHierro, setDescuentosHierro] = useState({});
 
   const cargar = useCallback(
     async (forzarDolar = false) => {
       setError(null);
       if (forzarDolar) setActualizando(true);
       try {
-        const [c, p, t, g, gr, longitudes] = await Promise.all([
+        const [c, p, t, g, gr, hs, longitudes] = await Promise.all([
           obtenerCliente(id),
           obtenerPreciosCliente(id, { forzarDolar }),
           listaPreciosTubos({ forzarDolar }),
           listaPreciosGalvanizada({ forzarDolar, clienteId: id }),
           listaPreciosGruesas({ forzarDolar }),
+          Promise.all(
+            TIPOS_HIERRO.map((t) => listaPreciosHierros(t.tipo, { forzarDolar }))
+          ),
           listarLongitudesChapa(),
         ]);
         setCliente(c);
@@ -47,6 +56,11 @@ export default function ClienteDetalle() {
         setTubos(t);
         setGalvanizada(g);
         setGruesas(gr);
+        const hierrosPorTipo = {};
+        TIPOS_HIERRO.forEach((t, i) => {
+          hierrosPorTipo[t.tipo] = hs[i];
+        });
+        setHierros(hierrosPorTipo);
         const mapa = {};
         for (const l of longitudes) {
           (mapa[l.ancho_mm] ||= []).push(l.longitud_mm);
@@ -66,7 +80,7 @@ export default function ClienteDetalle() {
   }, [cargar]);
 
   if (error) return <div className="alert alert-danger">{error}</div>;
-  if (!cliente || !precios || !tubos || !galvanizada || !gruesas) return <Loading label="Calculando lista de precios…" />;
+  if (!cliente || !precios || !tubos || !galvanizada || !gruesas || !hierros) return <Loading label="Calculando lista de precios…" />;
 
   const hayConflictoCarrito = carrito && clienteActivoId && clienteActivoId !== cliente.id;
 
@@ -90,6 +104,14 @@ export default function ClienteDetalle() {
 
   function setDescuentoDe(t, cambios) {
     setDescuentosTubo((prev) => ({ ...prev, [t.id]: { ...descuentoDe(t), ...cambios } }));
+  }
+
+  function descuentoHierroDe(h) {
+    return descuentosHierro[h.id] ?? { pct: Number(h.descuento_pct), habilitado: h.descuento_habilitado };
+  }
+
+  function setDescuentoHierroDe(h, cambios) {
+    setDescuentosHierro((prev) => ({ ...prev, [h.id]: { ...descuentoHierroDe(h), ...cambios } }));
   }
 
   const base = precios.precios[tab]?.base;
@@ -168,6 +190,7 @@ export default function ClienteDetalle() {
             <div className={`tab ${tab === "NEGRA" ? "active" : ""}`} onClick={() => setTab("NEGRA")}>Laminado en Caliente</div>
             <div className={`tab ${tab === "GALVANIZADA" ? "active" : ""}`} onClick={() => setTab("GALVANIZADA")}>Galvanizada</div>
             <div className={`tab ${tab === "GRUESA" ? "active" : ""}`} onClick={() => setTab("GRUESA")}>Gruesas</div>
+            <div className={`tab ${tab === "HIERROS" ? "active" : ""}`} onClick={() => setTab("HIERROS")}>Hierros</div>
             <div className={`tab ${tab === "TUBOS" ? "active" : ""}`} onClick={() => setTab("TUBOS")}>Tubos</div>
           </div>
         </div>
@@ -308,6 +331,123 @@ export default function ClienteDetalle() {
               </tbody>
             </table>
           </div>
+        )}
+
+        {tab === "HIERROS" && (
+          <>
+            <div style={{ padding: "0 18px", marginTop: 4 }}>
+              <div className="tabs">
+                {TIPOS_HIERRO.map((t) => (
+                  <div
+                    key={t.tipo}
+                    className={`tab ${tabHierro === t.tipo ? "active" : ""}`}
+                    onClick={() => setTabHierro(t.tipo)}
+                  >
+                    {t.label}
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="table-wrap">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Medida</th>
+                    <th className="col-right">Venta U$S/kg</th>
+                    <th className="col-right">Venta $/kg</th>
+                    <th className="col-right">Venta $/unidad</th>
+                    <th className="col-right">Descuento</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {hierros[tabHierro].hierros.map((h) => {
+                    const { pct, habilitado } = descuentoHierroDe(h);
+                    const tieneUnidad = h.peso_unitario_kg != null;
+                    const precioBaseKg = Number(h.precio_venta_pesos_kg);
+                    const precioFinalKg = habilitado ? precioBaseKg * (1 - pct / 100) : precioBaseKg;
+                    const precioBaseUnidad = tieneUnidad ? Number(h.precio_venta_pesos_unidad) : null;
+                    const precioFinalUnidad = tieneUnidad
+                      ? (habilitado ? precioBaseUnidad * (1 - pct / 100) : precioBaseUnidad)
+                      : null;
+                    const conDescuento = habilitado && pct > 0;
+                    const fmt = (n) => n.toLocaleString("es-AR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    return (
+                      <tr key={h.id}>
+                        <td>{h.medida}</td>
+                        <td className="num col-right">{Number(h.precio_venta_usd_kg).toFixed(4)}</td>
+                        <td className="num col-right">
+                          {conDescuento && (
+                            <div style={{ textDecoration: "line-through", color: "var(--text-faint)", fontSize: 11 }}>
+                              {fmt(precioBaseKg)}
+                            </div>
+                          )}
+                          {fmt(precioFinalKg)}
+                        </td>
+                        <td className="num col-right">
+                          {tieneUnidad ? (
+                            <>
+                              {conDescuento && (
+                                <div style={{ textDecoration: "line-through", color: "var(--text-faint)", fontSize: 11 }}>
+                                  {fmt(precioBaseUnidad)}
+                                </div>
+                              )}
+                              {fmt(precioFinalUnidad)}
+                            </>
+                          ) : (
+                            <span className="cell-muted">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end" }}>
+                            <input
+                              className="input num"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              style={{ width: 78 }}
+                              value={pct}
+                              onChange={(e) => setDescuentoHierroDe(h, { pct: e.target.value === "" ? 0 : Number(e.target.value) })}
+                              aria-label="Porcentaje de descuento para este cliente"
+                            />
+                            <span className="cell-muted" style={{ fontSize: 12 }}>%</span>
+                            <input
+                              type="checkbox"
+                              checked={habilitado}
+                              onChange={(e) => setDescuentoHierroDe(h, { habilitado: e.target.checked })}
+                              title="Aplicarle este descuento a este cliente"
+                            />
+                          </div>
+                        </td>
+                        <td style={{ minWidth: 190 }}>
+                          <AgregarAlCarrito
+                            unidadDefault={tieneUnidad ? "unidad" : "kg"}
+                            onAgregar={(cantidad, unidad) =>
+                              confirmarYAgregar({
+                                tipo: "HIERRO",
+                                descripcion: `${TIPOS_HIERRO.find((t) => t.tipo === tabHierro).label} · ${h.medida}`,
+                                cantidad,
+                                unidad,
+                                precio_unitario_pesos:
+                                  Math.round((tieneUnidad ? precioFinalUnidad : precioFinalKg) * 100) / 100,
+                              })
+                            }
+                          />
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {hierros[tabHierro].hierros.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="cell-muted">
+                        No hay items cargados en {TIPOS_HIERRO.find((t) => t.tipo === tabHierro).label.toLowerCase()}.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {tab === "TUBOS" && (

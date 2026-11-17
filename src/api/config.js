@@ -20,6 +20,11 @@ export async function eliminarMarkup(id) {
   await api.delete(`/markups-chapa/${id}/`);
 }
 
+export async function listaPreciosMarkups(tipo) {
+  const res = await api.get("/markups-chapa/lista-precios/", { params: { tipo } });
+  return res.data;
+}
+
 // --- Configuración global ---
 export async function obtenerConfiguracion() {
   const res = await api.get("/configuracion/");
