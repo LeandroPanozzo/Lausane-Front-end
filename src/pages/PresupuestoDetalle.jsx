@@ -132,7 +132,7 @@ export default function PresupuestoDetalle() {
       );
       const mensaje =
         `Hola ${presupuesto.cliente_detalle.nombre}, te compartimos el Presupuesto Lausane N° ${presupuesto.codigo} ` +
-        `por un total de $${Number(presupuesto.total_pesos).toLocaleString("es-AR")}.`;
+        `por un total de $${Number(presupuesto.total_con_impuestos_pesos).toLocaleString("es-AR")}.`;
       const nombreArchivo = `presupuesto_lausane_${presupuesto.numero}.pdf`;
       const blobPdf = await obtenerBlobPdfPresupuesto(presupuesto.id);
       const archivo = new File([blobPdf], nombreArchivo, { type: "application/pdf" });
